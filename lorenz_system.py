@@ -1,5 +1,4 @@
 import array
-import numpy as np
 
 
 class LorenzSystem:

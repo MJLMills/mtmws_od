@@ -81,12 +81,24 @@ class LorenzSystem:
         return self._x
 
     @property
+    def x_norm(self):
+        return (self._x + 25) / 55
+
+    @property
     def y(self):
         return self._y
 
     @property
+    def y_norm(self):
+        return (self._y + 25) / 55
+
+    @property
     def z(self):
         return self._z
+
+    @property
+    def z_norm(self):
+        return self._z / 55
 
     @property
     def crossed_zero(self):
@@ -235,6 +247,7 @@ class LorenzSystem:
 
 class LoopableLorenzSystem(LorenzSystem):
     """A Lorenz system that can be looped."""
+
     def __init__(self,
                  x=0.9,
                  y=0,
@@ -258,16 +271,22 @@ class LoopableLorenzSystem(LorenzSystem):
         self._looping = looping
 
     def set_startpoint(self):
-        self._x_init = self._x
-        self._y_init = self._y
-        self._z_init = self._z
+        """Set the initial position of the system to its current position."""
+        self._x_init = self.x
+        self._y_init = self.y
+        self._z_init = self.z
 
     def set_endpoint(self):
+        """Set the final position of the system to its current position."""
         self._x_final = self.x
         self._y_final = self.y
         self._z_final = self.z
 
     def start_loop(self):
+        lorenz_system.set_endpoint()  # current time will be the loop boundary
+        print("loop started, endpoint = ", self._x_final, self._y_final, self._z_final)
+        self.reset()
+        print("returning to start point = ", self._x_init, self._y_init, self._z_init)
         self._looping = True
 
     def stop_loop(self):
@@ -287,6 +306,18 @@ class LoopableLorenzSystem(LorenzSystem):
             The size of the step (in time units) to take.
             Default of 0.01 was determined by experimentation only.
         """
-        super().take_step(step_size)
         if self._looping:
-            ...  # check whether we reach the end time-point, if so reset, if not do nothing.
+
+            if self.x == self._x_final and self.y == self._y_final and self.z == self._z_final:
+                print("AT LOOP BOUNDARY")
+                self.reset()
+                return  # without taking a step
+            else:
+                print("Not at Loop Boundary")
+                print("Current Position: ", self.x, self.y, self.z)
+
+        super().take_step(step_size)
+
+    @property
+    def is_looping(self):
+        return self._looping

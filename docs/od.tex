@@ -37,7 +37,8 @@
 \begin{abstract}
 \noindent
 Od is a program for the Music Thing Modular Workshop System Computer
-module that produces (loopable) modulation and pulse signals by simulating the Lorenz system.
+module that simulates the Lorenz system in order to produce loop-able 
+control voltage and pulse signals that display sensitivity to initial conditions.
 \end{abstract}
 
 %\printclassoptions
@@ -50,9 +51,11 @@ $$\frac{dx}{dt} = \sigma(y - x)$$
 
 $$\frac{dy}{dt} = x(\rho - z) - y$$
 
-$$\frac{dz}{dt} = xy - \beta z$$
+$$\frac{dz}{dt} = x y - \beta z$$
 
 Here, $x$, $y$ and $z$ are the "coordinates" of the system, their evolution as a function of time are the solutions to the set of differential equations, and will be referred to as "trajectories".
+
+% this might be too much detail if the parameters are not user-controllable
 
 The constants $\rho$, $\beta$ and $\sigma$ determine the overall behavior of the system. For values of $\rho < 1$, all trajectories converge to the origin ($x, y, z = 0$). At $\rho=1$, a bifurcation occurs such that for values of $\rho > 1$ there are a pair of fixed point attractors, and all trajectories will evolve towards one of the two.
 
@@ -60,32 +63,40 @@ $$x, y, z = (\sqrt{\beta(\rho - 1)}, \sqrt{\beta(\rho - 1)}, \rho - 1)$$
 
 $$x, y, z = (-\sqrt{\beta(\rho - 1)}, -\sqrt{\beta(\rho - 1)}, \rho - 1)$$
 
+The three system parameters together determine whether the system is stable, which is true iff the following expression is true.
 
-For the values $\sigma=10$, $\beta=8/3$, $\rho=28$ the system exhibits chaotic behaviour, and this corresponds to the "Lorenz Attractor". Trajectories of this system will propagate forever, never repeating or converging.
+$$\rho < \sigma \frac{\sigma + \beta + 3}{\sigma - \beta - 1}$$ 
+
+The above holds only if $\sigma > \beta + 1$ which provides a hard limit on $\sigma$ as a function of $\beta$.
+
+For the values $\sigma=10$, $\beta=8/3$, $\rho=28$ the system exhibits chaotic behaviour, and this corresponds to the "Lorenz Attractor". Trajectories of this system will propagate forever, never repeating or converging. The Od module simulates two Lorenz attractors evolving at different rates.
+
+% user control of the parameters can be hidden behind a switch hold, but is it that musically useful?
+% the second LFO could run different parameters - see if the torus knot is much different because it would be cool to include.
 
 \subsection{Solving the System}\label{sec:solving_the_system}
 
-The solution of the system of ODEs is an "initial value problem", that is, the coordinates of an initial point are given, and the goal is (in general) to find the values $x$, $y$, $z$ at some discrete list of time values. In this specific case, the goal is to be able to continually determine the next step in the trajectory so that the functions $x$, $y$ and $z$ can be exported as control voltage via the Computer's CV output sockets.
-The simplest approach to solution of an initial value problem is the "Euler method", which discretizes time into individual constant steps, $\Delta t$, allowing the next point on a trajectory to be obtained via a simple formula.
+The solution of the system of ODEs is an "initial value problem"\sidenote{Numerical Recipes}. That is, the coordinates of an initial point are given, and the goal is (in general) to find the values $x$, $y$, $z$ at some discrete list of future time values. In this specific case, the goal is to be able to continually determine the next step in the trajectory so that the functions $x$, $y$ and $z$ can be exported as control voltage via the Computer's CV output sockets.
+The simplest approach to solution of an initial value problem is the "Euler method"\sidenote{find a citation}, which discretizes time into individual constant steps, $\Delta t$, allowing the next point on a trajectory to be obtained via a simple formula.
 
 $$x_{n+1} = x_n + \Delta t f_{x}(t, x, y, z)$$
 
-The error is on the order of ${\Delta t}^2$. For most applications, this approach is woefully poor. However, when generating solutions for musical purposes, trajectories that have the appropriate character are sufficient, and the simplest (and cheapest) approach can be relied upon.
+The error introduced by this approach is on the order of ${\Delta t}^2$. For most scientific applications, this approach is woefully poor. However, when generating solutions for musical purposes, trajectories that have the appropriate character are sufficient, and the simplest (and cheapest) approach can be relied upon.
 
 \section{The Module}\label{sec:the_module}
 
-The module itself utilizes a pair of Lorenz systems ($A$ and $B$) which run concurrently at different rates. Inspired by the 0CHD module, the relative rate is fixed at a musically engaging ratio. The overall rate is controlled by the main knob and one of the CV inputs. The trajectories of the system evolve according to the specified rate for $A$, and are made available as control voltage  at the CV and CV/Audio output sockets of the Computer, using the full available range of approximately -6 to 6 V. Two Lorenz systems produce three trajectories each for a total of six, however only four can be sent out of Computer. Given the strong similarity between the trajectories of $x$ and $y$, variables $x$ and $z$ are output for each system. This allows plotting of the classic Lorenz butterfly in two dimensions, and the creation of sound pictures of the same. The Y-knob is an overall attenuverter for the four CV outputs
+The module itself utilizes a pair of Lorenz systems ($A$ and $B$) which run concurrently at different rates. Inspired by the 0CHD module, the relative rate is fixed at a musically engaging ratio (in this case, $\Delta t_{fast} = \frac{11}{5} \Delta t_{slow}$. The overall rate is controlled by the main knob and the right-most CV/Audio input. The trajectories of the system evolve according to the specified rate for $A$, and are made available as control voltage at the CV and CV/Audio output sockets of the Computer, using the full available range of approximately -6 to 6 V. Two Lorenz systems produce three trajectories each for a total of six, however only four can be sent out of Computer. Given the strong similarity between the trajectories of $x$ and $y$, variables $x$ and $z$ are chosen as the output for each system, being bipolar signals between approximately -6 and +6 volts. This allows plotting of the classic Lorenz butterfly in two dimensions, and the creation of sound pictures of the same. The X-knob acts as an overall attenuverter for the four CV outputs.
 
-The two pulse outputs of the computer fire whenever the $x$-coordinate crosses zero. Examining the plot of the trajectories shows that this will produce a rhythm that feels random, although it is completely deterministic. The combination of zero-crossing triggers from the two Lorenz systems will provide contrasting fast and slow rhythms, similar in some sense to the output of Rollz circuits. The top row of LEDs is used to show when the pulses are fired, left is the slower system and right the faster system.
+The two pulse outputs of the computer fire whenever the $x$-coordinate crosses zero. Examining the plot of the trajectories shows that this will produce a rhythm that feels random, although it is completely deterministic. The combination of zero-crossing triggers from the two Lorenz systems will provide contrasting fast and slow rhythms, similar in the sense that they re deterministically  to the output of Rollz\sidenote{add reference} circuits. The top row of LEDs is used to show when the pulses are fired, left is the slower system and right the faster system.
 
 \subsection{Looping}\label{sec:looping}
 
-It would seem ignorant to implement a module using the Lorenz system without making use of the fact that these dynamical systems are highly sensitive to initial conditions. This implies that two trajectories whose starting positions differ by a small amount will initially behave similarly, but over time will drift apart.
+It seems ignorant to implement a module using the Lorenz system without making use of the fact that these dynamical systems are highly sensitive to initial conditions. This implies that two trajectories whose starting positions differ by a small amount will initially behave similarly, but over time will drift apart.
 This suggests the idea of returning to the start of a trajectory, but perturbing the initial position before computing the trajectory. The magnitude of this perturbation will determine for how long the first and second solutions of the system will remain similar before diverging.
 
-This idea is also based on the concept that repeating randomness becomes not random at all. While the trajectories are not "random" in any sense - they are in fact completely deterministic - they are not repetitive in an obvious way and give a sense of back-and-forth evolution. It is not predictable to a listener when or how quickly the system will move from one attractor to another, or how long an orbit on an attractor will last. However, if a chunk of the trajectory is repeated over a short enough time range, the repetition will become obvious to the listener. Thus, we can take an unpredictable system and make it predictable by looping a section of a trajectory between an initial position $x_0, y_0, z_0$ and a final position $x_N, y_N, z_N$ where $N$ is the number of steps taken between the initial and final positions. Given this loop, the sensitivity to initial conditions can be made use of. By allowing the musician to control the magnitude of random noise added to the initial position, the loop can be tuned to be either the same every time ($\zeta=0$), or to diverge on each repeat to a desired degree. This opens the door to a fuzzier definition of repetition where the loop is "similar enough" each time for the listener to detect repetition, but different enough to remain somewhat unpredictable, at the direction of the musician. This effect will also be felt on the pulse outputs. The X knob is used to set the magnitude of randomness.
+This idea is also based on the concept that repeating randomness becomes not random at all. While the trajectories are not "random" in any sense - they are in fact completely deterministic - they are not repetitive in an obvious way and give a sense of back-and-forth evolution. It is not predictable to a listener when or how quickly the system will move from one attractor to another, or how long an orbit on an attractor will last. However, if a chunk of the trajectory is repeated over a short enough time range, the repetition will become obvious to the listener. Thus, we can take an unpredictable system and make it predictable by looping a section of a trajectory between an initial position $x_0, y_0, z_0$ and a final position $x_N, y_N, z_N$ where $N$ is the number of steps taken between the initial and final positions. Given this loop, the sensitivity to initial conditions can be made use of. By allowing the musician to control the magnitude of random noise added to the initial position, the loop can be tuned to be either the same every time ($\zeta=0$), or to diverge on each repeat to a desired degree. This opens the door to a fuzzier definition of repetition where the loop is "similar enough" each time for the listener to detect repetition, but different enough to remain somewhat unpredictable, at the direction of the musician. This effect will also be felt on the pulse outputs. The Y-knob is used to set the magnitude of randomness.
 
-The start point is set by sending a trigger into the leftmost CV input. This will store the position at the time the trigger was detected as $t_0$. Looping can be controlled either by a trigger at the rightmost CV input or by setting the Z-switch to the middle position (up corresponds to turning looping off). The goal of including the switch is playability of the loop, and the trigger enables some amount of repeatability. When looping is turned on, the position at the current time is used as $t_N$ and the system will immediately return to $t_0$, evolving until the number of steps $N$ has elapsed then returning to the position at $t_0$. Turning looping off un-loops the time circle back to a flat line and the system will continue to freely evolve without affecting $t_0$; $t_N$ is forgotten.
+The start point is set by sending a trigger into the leftmost CV input or clicking the Z-switch down. This will store the postition at which the trigger (or switch click) was detected as $r_0$, and begin counting steps on the trajectory. Looping can be controlled either by a trigger at the rightmost pulse input or by setting the Z-switch to the up position (middle corresponds to turning looping off). The goal of including the switch is playability of the loop, and the trigger enables some amount of repeatability. When looping is turned on, the position at the current time is used as $r_N$ and the system will immediately return to $r_0$, evolving until the number of steps $N$ has elapsed then returning to the position at $t_0$. Turning looping off un-loops the time circle back to a flat line and the system will continue to freely evolve without affecting $t_0$; $t_N$ is forgotten at the point looping is turned off.
 
 The center row of LEDs shows the loop status. The leftmost LED is lit when looping is enabled (NB this is redundant with looking at the switch), and the rightmost flashes when the loop boundary is crossed (i.e. at the simultaneous start/end of the loop).
 
@@ -104,7 +115,9 @@ The module wants to limit parameters such that this equation is always false.
 
 \section{Future Work}\label{sec:future_work}
 
-The implementation of Od takes care to avoid stable solutions of the Lorenz system (i.e. those with $\rho < 1$, or $\rho > 1$ where the stability test is able to confirm stability of the system. This in done to ensure the outputs of the module are chaotic. However, stable solutions could provide interesting, loopable decaying oscillatory envelopes. This could be incorporated in Od or act as the basis for a separate module or half-program of Computer.
+The implementation of Od takes care to avoid stable solutions of the Lorenz system (i.e. those with $\rho < 1$, or $\rho > 1$ where the stability test is able to confirm stability of the system. This in done to ensure the outputs of the module are chaotic. However, stable solutions could provide interesting, loop-able decaying oscillatory envelopes. This could be incorporated in Od or act as the basis for a separate module or half-program of Computer.
+
+The assumption that the Euler method is sufficient for solving the Lorenz system warrants further investigation, and the implementation of a method with smaller error could be attempted.
 
 
 \bibliography{sample-handout}

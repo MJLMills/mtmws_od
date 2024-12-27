@@ -1,6 +1,7 @@
 import array
 import math
 
+
 class LorenzSystem:
     """The Lorenz system of ordinary differential equations.
 
@@ -55,12 +56,13 @@ class LorenzSystem:
                  sigma=10,
                  rho=28,
                  beta=8 / 3,
-                 convergence_threshold=1e-3,
                  random_factor=None):
 
         self._x_init = x
         self._y_init = y
         self._z_init = z
+
+        self._random_factor = random_factor
 
         self._x = None
         self._y = None
@@ -70,9 +72,6 @@ class LorenzSystem:
         self._sigma = sigma
         self._rho = rho
         self._beta = beta
-
-        self._random_factor = random_factor
-        self._convergence_threshold = convergence_threshold
 
         self._crossed_zero = False
 
@@ -101,11 +100,33 @@ class LorenzSystem:
         return self._z / 55
 
     @property
+    def random_factor(self):
+        return self._random_factor
+
+    @random_factor.setter
+    def random_factor(self, random_factor):
+        self._random_factor = random_factor
+
+    @property
     def crossed_zero(self):
         return self._crossed_zero
 
+    @property
     def coordinates(self):
         return array.array('f', [self._x, self._y, self._z])
+
+    @property
+    def initial_coordinates(self):
+        return array.array('f', [self._x_init, self._y_init, self._z_init])
+
+    @initial_coordinates.setter
+    def initial_coordinates(self, coordinates: array.array):
+        self._x_init = coordinates[0]
+        self._y_init = coordinates[1]
+        self._z_init = coordinates[2]
+
+    def capture_initial_coordinates(self):
+        self.initial_coordinates = self.coordinates
 
     @property
     def convergence_threshold(self):
@@ -175,6 +196,8 @@ class LorenzSystem:
             The size of the step (in time units) to take.
             Default of 0.01 was determined by experimentation only.
         """
+        previous_x = self._x
+
         partial_derivatives = self.__compute_derivatives(self._x,
                                                          self._y,
                                                          self._z)
@@ -183,9 +206,24 @@ class LorenzSystem:
         self._y = self._y + (partial_derivatives[1] * step_size)
         self._z = self._z + (partial_derivatives[2] * step_size)
 
+        if (previous_x * self._x) < 0:
+            self._crossed_zero = True
+        else:
+            self._crossed_zero = False
+
     def reset(self):
         """Return the system to its starting values."""
-        self.move_to(self._x_init, self._y_init, self._z_init)
+        if self._random_factor is not None:
+
+            self._random_factor * random.random() * 1e-2
+
+            self.move_to(
+                self._x_init + self._random_factor * random.random() * 1,
+                self._y_init + self._random_factor * random.random() * 1,
+                self._z_init + self._random_factor * random.random() * 1)
+        else:
+
+            self.move_to(self._x_init, self._y_init, self._z_init)
 
     def move_to(self, x, y, z):
         """Move the system to the provided point.
@@ -215,14 +253,6 @@ class LorenzSystem:
         """Determine whether this Lorenz system has converged."""
         if not self.is_stable():
             return False
-
-        if self.rho < 1:
-            ...  # check if the system has reached the origin yet.
-            # get sq distance from x, y, z to (0, 0, 0). If below threshold, return True.
-        else:
-            # get sq distance from x, y, z to each of the fixed points.
-            # if either is below threshold, return True
-            ...
 
     @property
     def fixed_points(self):
@@ -255,6 +285,7 @@ class LoopableLorenzSystem(LorenzSystem):
                  sigma=10,
                  rho=28,
                  beta=8 / 3,
+                 random_factor=None,
                  looping=False):
 
         super().__init__(x=x,
@@ -262,7 +293,8 @@ class LoopableLorenzSystem(LorenzSystem):
                          z=z,
                          sigma=sigma,
                          rho=rho,
-                         beta=beta)
+                         beta=beta,
+                         random_factor=random_factor)
 
         self._x_final = None
         self._y_final = None
@@ -282,14 +314,20 @@ class LoopableLorenzSystem(LorenzSystem):
         self._y_final = self.y
         self._z_final = self.z
 
+        self._steps_in_loop = self._counter
+
     def start_loop(self):
-        lorenz_system.set_endpoint()  # current time will be the loop boundary
-        print("loop started, endpoint = ", self._x_final, self._y_final, self._z_final)
+        print("starting loop")
+        self._steps_in_loop = self._counter
+
+        self.set_endpoint()  # current time will be the loop boundary
+        # print("loop started, endpoint = ", self._x_final, self._y_final, self._z_final)
         self.reset()
-        print("returning to start point = ", self._x_init, self._y_init, self._z_init)
+        # print("returning to start point = ", self._x_init, self._y_init, self._z_init)
         self._looping = True
 
     def stop_loop(self):
+        print("stopping loop")
         self._looping = False
 
     def take_step(self, step_size: float = 0.01) -> None:
@@ -308,16 +346,28 @@ class LoopableLorenzSystem(LorenzSystem):
         """
         if self._looping:
 
-            if self.x == self._x_final and self.y == self._y_final and self.z == self._z_final:
-                print("AT LOOP BOUNDARY")
+            #            if self.x == self._x_final and self.y == self._y_final and self.z == self._z_final:
+            #                self.reset()
+            #                return  # without taking a step
+
+            if self._counter == self._steps_in_loop:
                 self.reset()
                 return  # without taking a step
-            else:
-                print("Not at Loop Boundary")
-                print("Current Position: ", self.x, self.y, self.z)
+
+        self._counter += 1
 
         super().take_step(step_size)
+
+    def reset(self):
+        """Return the system to its starting values."""
+        super().reset()
+        self._counter = 0
+
+    def capture_initial_coordinates(self):
+        self.initial_coordinates = self.coordinates
+        self._counter = 0
 
     @property
     def is_looping(self):
         return self._looping
+

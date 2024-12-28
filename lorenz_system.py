@@ -276,98 +276,94 @@ class LorenzSystem:
         self._fixed_point_two = (-p, -p, rho_minus_one)
 
 
-class LoopableLorenzSystem(LorenzSystem):
-    """A Lorenz system that can be looped."""
-
-    def __init__(self,
-                 x=0.9,
-                 y=0,
-                 z=0,
-                 sigma=10,
-                 rho=28,
-                 beta=8 / 3,
-                 random_factor=None,
-                 looping=False):
-
-        super().__init__(x=x,
-                         y=y,
-                         z=z,
-                         sigma=sigma,
-                         rho=rho,
-                         beta=beta,
-                         random_factor=random_factor)
-
-        self._x_final = None
-        self._y_final = None
-        self._z_final = None
-
-        self._looping = looping
-
-    def set_startpoint(self):
-        """Set the initial position of the system to its current position."""
-        self._x_init = self.x
-        self._y_init = self.y
-        self._z_init = self.z
-
-    def set_endpoint(self):
-        """Set the final position of the system to its current position."""
-        self._x_final = self.x
-        self._y_final = self.y
-        self._z_final = self.z
-
-        self._steps_in_loop = self._counter
-
-    def start_loop(self):
-        print("starting loop")
-        self._steps_in_loop = self._counter
-
-        self.set_endpoint()  # current time will be the loop boundary
-        # print("loop started, endpoint = ", self._x_final, self._y_final, self._z_final)
-        self.reset()
-        # print("returning to start point = ", self._x_init, self._y_init, self._z_init)
-        self._looping = True
-
-    def stop_loop(self):
-        print("stopping loop")
-        self._looping = False
-
-    def take_step(self, step_size: float = 0.01) -> None:
-        """Determine the value of f(t_n+1, x, y, z) at the next timestep.
-
-        This stepper uses the most basic possible scheme to integrate
-        the ODEs of the system; Euler's method. This only requires a
-        single evaluation of f(t, x, y, z) so is cheap, but is only accurate
-        on the order of the square of the timestep.
-
-        Parameters
-        ----------
-        step_size
-            The size of the step (in time units) to take.
-            Default of 0.01 was determined by experimentation only.
-        """
-        if self._looping:
-
-            #            if self.x == self._x_final and self.y == self._y_final and self.z == self._z_final:
-            #                self.reset()
-            #                return  # without taking a step
-
-            if self._counter == self._steps_in_loop:
-                self.reset()
-                return  # without taking a step
-
-        self._counter += 1
-
-        super().take_step(step_size)
-
-    def reset(self):
-        """Return the system to its starting values."""
-        super().reset()
-        self._counter = 0
-
-    def capture_initial_coordinates(self):
-        self.initial_coordinates = self.coordinates
-        self._counter = 0
-
-    @property
-    def is_looping(self):
-        return self._looping
+# class LoopableLorenzSystem(LorenzSystem):
+#     """A Lorenz system that can be looped."""
+#
+#     def __init__(self,
+#                  x=0.9,
+#                  y=0,
+#                  z=0,
+#                  sigma=10,
+#                  rho=28,
+#                  beta=8 / 3,
+#                  random_factor=None,
+#                  looping=False):
+#
+#         super().__init__(x=x,
+#                          y=y,
+#                          z=z,
+#                          sigma=sigma,
+#                          rho=rho,
+#                          beta=beta,
+#                          random_factor=random_factor)
+#
+#         self._x_final = None
+#         self._y_final = None
+#         self._z_final = None
+#
+#         self._looping = looping
+#
+#     def set_startpoint(self):
+#         """Set the initial position of the system to its current position."""
+#         self._x_init = self.x
+#         self._y_init = self.y
+#         self._z_init = self.z
+#
+#     def set_endpoint(self):
+#         """Set the final position of the system to its current position."""
+#         self._x_final = self.x
+#         self._y_final = self.y
+#         self._z_final = self.z
+#
+#         self._steps_in_loop = self._counter
+#
+#     def start_loop(self):
+#         print("starting loop")
+#         self._steps_in_loop = self._counter
+#
+#         self.set_endpoint()  # current time will be the loop boundary
+#         # print("loop started, endpoint = ", self._x_final, self._y_final, self._z_final)
+#         self.reset()
+#         # print("returning to start point = ", self._x_init, self._y_init, self._z_init)
+#         self._looping = True
+#
+#     def stop_loop(self):
+#         print("stopping loop")
+#         self._looping = False
+#
+#     def take_step(self, step_size: float = 0.01) -> None:
+#         """Determine the value of f(t_n+1, x, y, z) at the next timestep.
+#
+#         This stepper uses the most basic possible scheme to integrate
+#         the ODEs of the system; Euler's method. This only requires a
+#         single evaluation of f(t, x, y, z) so is cheap, but is only accurate
+#         on the order of the square of the timestep.
+#
+#         Parameters
+#         ----------
+#         step_size
+#             The size of the step (in time units) to take.
+#             Default of 0.01 was determined by experimentation only.
+#         """
+#         if self._looping:
+#
+#             if self._counter == self._steps_in_loop:
+#                 self.reset()
+#                 return  # without taking a step
+#
+#         self._counter += 1
+#
+#         super().take_step(step_size)
+#
+#     def reset(self):
+#         """Return the system to its starting values."""
+#         super().reset()
+#         self._counter = 0
+#
+#     def capture_initial_coordinates(self):
+#         self.initial_coordinates = self.coordinates
+#         self._counter = 0
+#
+#     @property
+#     def is_looping(self):
+#         return self._looping

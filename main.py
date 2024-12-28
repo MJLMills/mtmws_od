@@ -97,4 +97,3 @@ while True:
 
     lorenz_attractor_a.take_step(0.01)
     lorenz_attractor_b.take_step(0.01 / rate_factor)
-

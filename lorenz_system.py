@@ -1,5 +1,6 @@
 import array
 import math
+import random
 
 
 class LorenzSystem:
@@ -370,4 +371,3 @@ class LoopableLorenzSystem(LorenzSystem):
     @property
     def is_looping(self):
         return self._looping
-

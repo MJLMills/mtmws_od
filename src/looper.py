@@ -29,7 +29,7 @@ class Looper(object):
         """Return the model trajectories to their initial coordinates."""
         self._counter = 0
 
-    def start_looping(self):
+    def start_looping(self) -> None:
         """Start looping the models.
 
         On loop start, the current position of the model will be used as the
@@ -45,8 +45,7 @@ class Looper(object):
         for model in self._models:
             model.reset()
 
-
-    def stop_looping(self):
+    def stop_looping(self) -> None:
         """Stop looping the models.
 
         On stopping the loop, the start position is retained but the final
@@ -57,7 +56,7 @@ class Looper(object):
         self._looping = False
         self._num_steps = None
 
-    def take_step(self):
+    def take_step(self) -> None:
         """Take a step along each model's trajectory.
 
         If the system is not being looped, this method just takes a step on the

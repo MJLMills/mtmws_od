@@ -45,7 +45,7 @@ control voltage and pulse signals that display sensitivity to initial conditions
 
 \section{The Lorenz System}\label{sec:the-lorenz-system}
 
-\newthought{The Lorenz system is a set of} three coupled, first-order ordinary differential equations.
+\newthought{The Lorenz system\sidenote{Deterministic Nonperiodic Flow, Edward N. Lorenz}. is a set of} three coupled, first-order ordinary differential equations.
 
 $$\frac{dx}{dt} = \sigma(y - x)$$
 
@@ -53,23 +53,37 @@ $$\frac{dy}{dt} = x(\rho - z) - y$$
 
 $$\frac{dz}{dt} = x y - \beta z$$
 
-Here, $x$, $y$ and $z$ are the "coordinates" of the system, their evolution as a function of time are the solutions to the set of differential equations, and will be referred to as "trajectories".
+Here, $x$, $y$ and $z$ are the "coordinates" of the system, their evolution through a three-dimensional space as a function of time are the solutions to the set of differential equations, and will be referred to as "trajectories" herein.
 
-% this might be too much detail if the parameters are not user-controllable
+\begin{figure*}[h]
+  \includegraphics[width=\linewidth]{lorenz_attractor.png}%
+  \caption{Trajectories of the Lorenz attractor projected onto each Cartesian plane. The two fixed points are shown as gray dots.}%
+  \label{fig:fullfig}%
+\end{figure*}
 
-The constants $\rho$, $\beta$ and $\sigma$ determine the overall behavior of the system. For values of $\rho < 1$, all trajectories converge to the origin ($x, y, z = 0$). At $\rho=1$, a bifurcation occurs such that for values of $\rho > 1$ there are a pair of fixed point attractors, and all trajectories will evolve towards one of the two.
+The constants $\rho$, $\beta$ and $\sigma$ determine the overall behavior of the system. For values of $\rho < 1$, all trajectories converge to the origin ($x, y, z = 0$). At $\rho=1$, a bifurcation occurs such that for values of $\rho > 1$ there are a pair of fixed point attractors, and all trajectories will evolve towards one of the two. 
 
-$$x, y, z = (\sqrt{\beta(\rho - 1)}, \sqrt{\beta(\rho - 1)}, \rho - 1)$$
+For the values $\sigma=10$, $\beta=8/3$, $\rho=28$ the system exhibits chaotic behaviour, and this corresponds to the "Lorenz Attractor". Trajectories of this system will propagate forever, never repeating or converging.
 
-$$x, y, z = (-\sqrt{\beta(\rho - 1)}, -\sqrt{\beta(\rho - 1)}, \rho - 1)$$
 
-The three system parameters together determine whether the system is stable, which is true iff the following expression is true.
 
-$$\rho < \sigma \frac{\sigma + \beta + 3}{\sigma - \beta - 1}$$ 
+\begin{figure*}[h]
+  \includegraphics[width=\linewidth]{control_voltages.png}%
+  \caption{The first 10,000 steps of trajectories of the Lorenz attractor along each axis as a function of time. Note the similarity of the $x$ and $y$ traces. The $x$ and $z$ traces correspond to the CV outputs of the module.}%
+  \label{fig:control_voltages}%
+\end{figure*}
 
-The above holds only if $\sigma > \beta + 1$ which provides a hard limit on $\sigma$ as a function of $\beta$.
+%$$x, y, z = (\sqrt{\beta(\rho - 1)}, \sqrt{\beta(\rho - 1)}, \rho - 1)$$
 
-For the values $\sigma=10$, $\beta=8/3$, $\rho=28$ the system exhibits chaotic behaviour, and this corresponds to the "Lorenz Attractor". Trajectories of this system will propagate forever, never repeating or converging. The Od module simulates two Lorenz attractors evolving at different rates.
+%$$x, y, z = (-\sqrt{\beta(\rho - 1)}, -\sqrt{\beta(\rho - 1)}, \rho - 1)$$
+
+%The three system parameters together determine whether the system is stable, which is true iff the following expression is true.
+
+%$$\rho < \sigma \frac{\sigma + \beta + 3}{\sigma - \beta - 1}$$ 
+
+%The above holds only if $\sigma > \beta + 1$ which provides a hard limit on $\sigma$ as a function of $\beta$.
+
+
 
 % user control of the parameters can be hidden behind a switch hold, but is it that musically useful?
 % the second LFO could run different parameters - see if the torus knot is much different because it would be cool to include.
@@ -85,16 +99,55 @@ The error introduced by this approach is on the order of ${\Delta t}^2$. For mos
 
 \section{The Module}\label{sec:the_module}
 
-The module itself utilizes a pair of Lorenz systems ($A$ and $B$) which run concurrently at different rates. Inspired by the 0CHD module, the relative rate is fixed at a musically engaging ratio (in this case, $\Delta t_{fast} = \frac{11}{5} \Delta t_{slow}$. The overall rate is controlled by the main knob and the right-most CV/Audio input. The trajectories of the system evolve according to the specified rate for $A$, and are made available as control voltage at the CV and CV/Audio output sockets of the Computer, using the full available range of approximately -6 to 6 V. Two Lorenz systems produce three trajectories each for a total of six, however only four can be sent out of Computer. Given the strong similarity between the trajectories of $x$ and $y$, variables $x$ and $z$ are chosen as the output for each system, being bipolar signals between approximately -6 and +6 volts. This allows plotting of the classic Lorenz butterfly in two dimensions, and the creation of sound pictures of the same. The X-knob acts as an overall attenuverter for the four CV outputs.
+The module itself utilizes a pair of Lorenz systems ($A$ and $B$) which run concurrently at different rates. Inspired by the \o chd module\sidenote{https://www.instruomodular.com/product/ochd/}, the relative rate is fixed at a musically engaging ratio (in this case, $\Delta t_{fast} = \frac{11}{5} \Delta t_{slow}$. The overall rate is controlled by the main knob and the right-most CV/Audio input. 
 
-The two pulse outputs of the computer fire whenever the $x$-coordinate crosses zero. Examining the plot of the trajectories shows that this will produce a rhythm that feels random, although it is completely deterministic. The combination of zero-crossing triggers from the two Lorenz systems will provide contrasting fast and slow rhythms, similar in the sense that they re deterministically  to the output of Rollz\sidenote{add reference} circuits. The top row of LEDs is used to show when the pulses are fired, left is the slower system and right the faster system.
+\begin{figure}[h]
+  \includegraphics[width=\linewidth]{module_labels.png}%
+  \caption{The labels of the Computer's faceplate. The CV inputs control properties shared by the two Lorenz systems, while the pulse inputs allow control of the looping behaviour. The CV outputs provide the coordinates of the trajectories of $A$ and $B$, while the pulse outputs fire when the trajectories of $A$ and $B$ cross zero along the $x$-axis.}%
+  \label{fig:module_labels}%
+\end{figure}
+
+\subsection{Control Voltage}
+
+The trajectories of the system evolve according to the specified rate for $A$, and are made available as bipolar control voltage signals at the CV and CV/Audio output sockets of the Computer, using the full available Computer range of approximately -6 to 6 V. Two Lorenz systems produce three trajectories each for a total of six, however only four can be sent out of Computer. Given the strong similarity between the trajectories of $x$ and $y$ (see Fig. 2), variables $x$ and $z$ are chosen as the output for each system, being between approximately -6 and +6 volts. This allows plotting of the classic Lorenz butterfly in two dimensions, and the creation of sound pictures of the same. The X-knob acts as an overall attenuverter for the four CV outputs.
+
+%\begin{figure}[h]
+ % \includegraphics[width=\linewidth]{led_labels.png}%
+ % \caption{The functions of the LEDs.}%
+ % \label{fig:led_labels}%
+%\end{figure}
+
+\subsection{Pulses}
+
+The two pulse outputs of the computer fire whenever the $x$-coordinate of the associated Lorenz system crosses zero. Examining the plot of the trajectories shows that this will produce a rhythm that feels random, although it is completely deterministic. The combination of zero-crossing triggers from the two Lorenz systems will provide contrasting fast and slow rhythms, similar in the sense that they re deterministically  to the output of Rollz\sidenote{add reference} circuits. The top row of LEDs is used to show when the pulses are fired, left is the slower system and right the faster system.
 
 \subsection{Looping}\label{sec:looping}
+
+
+\begin{figure*}[h]
+  \includegraphics[width=\linewidth]{looping_voltages.png}%
+  \caption{Looping the two Lorenz systems (without sensitivity to initial conditions). The simulation starts at an arbitrary $t_0$ and begins looping at $t_n$, marked with a black line. After the second repeat, looping ends and the trajectory evolves freely.}%
+  \label{fig:looping_voltages}%
+\end{figure*}
 
 It seems ignorant to implement a module using the Lorenz system without making use of the fact that these dynamical systems are highly sensitive to initial conditions. This implies that two trajectories whose starting positions differ by a small amount will initially behave similarly, but over time will drift apart.
 This suggests the idea of returning to the start of a trajectory, but perturbing the initial position before computing the trajectory. The magnitude of this perturbation will determine for how long the first and second solutions of the system will remain similar before diverging.
 
+\begin{figure*}[h]
+  \includegraphics[width=\linewidth]{dependent_loop.png}%
+  \caption{Looping the two Lorenz systems with sensitivity to initial conditions.}%
+  \label{fig:dependent_loop}%
+\end{figure*}
+
+
 This idea is also based on the concept that repeating randomness becomes not random at all. While the trajectories are not "random" in any sense - they are in fact completely deterministic - they are not repetitive in an obvious way and give a sense of back-and-forth evolution. It is not predictable to a listener when or how quickly the system will move from one attractor to another, or how long an orbit on an attractor will last. However, if a chunk of the trajectory is repeated over a short enough time range, the repetition will become obvious to the listener. Thus, we can take an unpredictable system and make it predictable by looping a section of a trajectory between an initial position $x_0, y_0, z_0$ and a final position $x_N, y_N, z_N$ where $N$ is the number of steps taken between the initial and final positions. Given this loop, the sensitivity to initial conditions can be made use of. By allowing the musician to control the magnitude of random noise added to the initial position, the loop can be tuned to be either the same every time ($\zeta=0$), or to diverge on each repeat to a desired degree. This opens the door to a fuzzier definition of repetition where the loop is "similar enough" each time for the listener to detect repetition, but different enough to remain somewhat unpredictable, at the direction of the musician. This effect will also be felt on the pulse outputs. The Y-knob is used to set the magnitude of randomness.
+
+\begin{figure*}[h]
+  \includegraphics[width=\linewidth]{very_dependent_loop.png}%
+  \caption{Looping the two Lorenz systems with a high degree of sensitivity to initial conditions.}%
+  \label{fig:very_dependent_loop}%
+\end{figure*}
+
 
 The start point is set by sending a trigger into the leftmost CV input or clicking the Z-switch down. This will store the postition at which the trigger (or switch click) was detected as $r_0$, and begin counting steps on the trajectory. Looping can be controlled either by a trigger at the rightmost pulse input or by setting the Z-switch to the up position (middle corresponds to turning looping off). The goal of including the switch is playability of the loop, and the trigger enables some amount of repeatability. When looping is turned on, the position at the current time is used as $r_N$ and the system will immediately return to $r_0$, evolving until the number of steps $N$ has elapsed then returning to the position at $t_0$. Turning looping off un-loops the time circle back to a flat line and the system will continue to freely evolve without affecting $t_0$; $t_N$ is forgotten at the point looping is turned off.
 
@@ -102,16 +155,6 @@ The center row of LEDs shows the loop status. The leftmost LED is lit when loopi
 
 NB: maybe it would be nice if you could always return to your exact same loop after meandering, i.e after the first time you start a loop $t_N$ would be retained unless explicitly altered, but would need to decide how (switch click?)
 
-It would be maybe easier at first to prevent any control over system parameters that would lead to a stable state. Can the ranges be determined? Could you hold Z down to change the system params with the 3 knobs? Probably would want to switch looping to up so the clicker could be used for setting system params this way. Looping on Z switch may be pointless TBH, if not using it for that it could be used to change 2 modes? In system params mode the LED matrix could be used to indicate stability boundaries etc. if needed.
-
-There are three system parameters, together they determine whether the system is stable, which is true iff the following expression is true.
-
-$$\rho < \sigma \frac{\sigma + \beta + 3}{\sigma - \beta - 1}$$ 
-
-The above holds only if $\sigma > \beta + 1$ which provides a hard limit on $\sigma$ as a function of $\beta$. Changing sigma depends on where beta is - if the sigma knob tried to take the system to a stable state then sigma will stop changing, but a later change to beta may make the knob final position newly acceptable, in which case the system either has to move to that value of sigma or retain the stuck sigma value until the sigma knob gets moved again.
-Any time $\sigma$, $\rho$ or $\beta$ is changed, the stability must be evaluated. If sigma or beta is changed, the criterion making the stability expression valid has to be evaluated, before evaluating the stability.
-
-The module wants to limit parameters such that this equation is always false.
 
 \section{Future Work}\label{sec:future_work}
 

@@ -3,28 +3,44 @@ from model import Model
 
 
 class LorenzSystem(Model):
-    """
+    """The Lorenz system of ordinary differential equations.
+
     Parameters
     ----------
+    x
+        The current x-coordinate. Default starting value is 0.0.
+    y
+        The current y-coordinate. Default starting value is 1.0.
+    z
+        The current z-coordinate. Default starting value is 1.05.
+    sigma
+        Default value is 10.
+    rho
+        Default value is 28.
+    beta
+        Default value is 8/3.
     timestep
         The size of the step (in time units) to take.
         Default of 0.01 was determined by experimentation only.
+    random_factor
+        The maximum magnitude of the perturbation applied at reset.
+
+    Properties
+    ----------
+    n_dimensions -> int
+        The number of dimensions of this model.
+    n_parameters -> int
+        The number of parameters of this model.
+
+    Methods
+    -------
+    take_step
+        Take a step along the trajectory.
+    set_initial_coordinates
+        Set the initial coordinates to be the current coordinates.
+    reset
+        Return the trajectory to the initial coordinates.
     """
-
-    def reset(self) -> None:
-        super().reset()
-        if self._random_factor:
-            for i in range(self.n_dimensions):
-                self._coordinates[i] += self._random_factor * random.random()
-
-    @property
-    def n_dimensions(self):
-        return 3
-
-    @property
-    def n_parameters(self):
-        return 3
-
     def __init__(self,
                  x: float = 0.9,
                  y: float = 0.0,
@@ -47,6 +63,21 @@ class LorenzSystem(Model):
 
         self._crossed_zero = False
 
+    @property
+    def n_dimensions(self) -> int:
+        return 3
+
+    @property
+    def n_parameters(self) -> int:
+        return 3
+
+    def reset(self) -> None:
+        """Return the trajectory to the initial coordinates."""
+        super().reset()
+        if self._random_factor:
+            for i in range(self.n_dimensions):
+                self._coordinates[i] += self._random_factor * random.random()
+
     def __compute_derivatives(self):
         """Determine the partial derivatives at the current coordinates."""
         self._derivatives = [
@@ -66,10 +97,6 @@ class LorenzSystem(Model):
         the ODEs of the system; Euler's method. This only requires a
         single evaluation of f(t, x, y, z) so is cheap, but is only accurate
         on the order of the square of the timestep.
-
-        Parameters
-        ----------
-
         """
         previous_x = self._coordinates[0]
 

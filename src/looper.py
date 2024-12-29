@@ -1,26 +1,36 @@
-from model import Model
-
 class Looper(object):
-    """A looper for a model."""
+    """A looper for models.
+
+    Parameters
+    ----------
+    models
+        A list of the models to be looped.
+    looping
+        Whether to being looping on instantiation.
+        Default value is False.
+    """
     def __init__(self,
-                 model: Model,
+                 models: list,
                  looping: bool = False):
 
-        self._model = model
+        self._models = models
         self._looping = looping
 
         self._counter = 0
         self._num_steps = None
 
-    def set_initial_coordinates(self):
+    def set_initial_coordinates(self) -> None:
+        """Set the initial coordinates of all the looped models."""
         self.reset()
-        self._model.set_initial_coordinates()
+        for model in self._models:
+            model.set_initial_coordinates()
 
-    def reset(self):
+    def reset(self) -> None:
+        """Return the model trajectories to their initial coordinates."""
         self._counter = 0
 
     def start_looping(self):
-        """Start looping the model.
+        """Start looping the models.
 
         On loop start, the current position of the model will be used as the
         final position for the loop. To enable this behaviour, the number of
@@ -32,11 +42,12 @@ class Looper(object):
         self._looping = True
         self._num_steps = self._counter
         self.reset()
-        self._model.reset()
+        for model in self._models:
+            model.reset()
 
 
     def stop_looping(self):
-        """Stop looping the model.
+        """Stop looping the models.
 
         On stopping the loop, the start position is retained but the final
         position is not kept, since it is set when the loop begins. The counter
@@ -47,7 +58,7 @@ class Looper(object):
         self._num_steps = None
 
     def take_step(self):
-        """Take a step along the model's trajectory.
+        """Take a step along each model's trajectory.
 
         If the system is not being looped, this method just takes a step on the
         model trajectory and increments the counter. If the number of steps in
@@ -59,9 +70,13 @@ class Looper(object):
         """
         if self._looping:
             if self._counter == self._num_steps:
-                self._model.reset()
+                for model in self._models:
+                    model.reset()
+
                 self.reset()
                 return
 
-        self._model.take_step()
+        for model in self._models:
+            model.take_step()
+
         self._counter += 1

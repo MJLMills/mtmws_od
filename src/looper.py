@@ -79,3 +79,10 @@ class Looper(object):
             model.take_step()
 
         self._counter += 1
+
+    def toggle_looping(self) -> None:
+        """Toggle the looping on or off."""
+        if self._looping:
+            self.stop_looping()
+        else:
+            self.start_looping()

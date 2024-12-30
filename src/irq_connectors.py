@@ -16,7 +16,6 @@ class IRQConnector(object):
     outputs
         The class instances providing access to program state.
     """
-
     def __init__(self,
                  irq_source: machine.Pin,
                  outputs: list,
@@ -56,7 +55,7 @@ class ToggleLooping(IRQConnector):
         self._looper = self._outputs[0]
 
     def callback(self, _):
-        """Action to take when the pulse input goes high."""
+        """Toggle looping when the pulse input goes high."""
         self._looper.toggle_looping()
 
 
@@ -82,5 +81,8 @@ class SetStartPoint(IRQConnector):
                          outputs=[looper],
                          trigger=machine.Pin.IRQ_RISING)
 
+        self._looper = self._outputs[0]
+
     def callback(self, irq_source_pin):
-        self._outputs[0].set_initial_coordinates()
+        """Set the start point when the pin goes high."""
+        self._looper.set_initial_coordinates()

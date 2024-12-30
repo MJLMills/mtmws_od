@@ -1,7 +1,18 @@
-sleep_seconds = 0.01
+import machine
+import time
+from lorenz_system import LorenzSystem
+from looper import Looper
+from irq_connectors import ToggleLooping, SetStartPoint
+from timer_connectors import WriteOutput
 
-lorenz_attractor_a = LoopableLorenzSystem()
-lorenz_attractor_b = LoopableLorenzSystem()
+sleep_seconds = 0.01
+led_pulse_output_length = 0.01
+rate_factor = 11 / 5
+
+lorenz_attractor_a = LorenzSystem()
+lorenz_attractor_b = LorenzSystem()
+looper = Looper(models=[lorenz_attractor_a,
+                        lorenz_attractor_b])
 
 computer = Computer()
 
@@ -10,37 +21,52 @@ led_id_pulse_output_a = 1
 led_id_pulse_output_b = 2
 led_matrix.turn_on()
 
+# analog inputs
 rate_knob = computer.main_knob
 cv_magnitude_knob = computer.knob_x
 divergence_knob = computer.knob_y
 loop_switch = computer.switch_z
-
 rate_cv_input = computer.cv_audio_input_socket_one
 cv_magnitude_cv_input = computer.cv_audio_input_socket_two
 
+# analog outputs
 cv_output_z_a = computer.cv_audio_output_socket_one
 cv_output_x_a = computer.cv_output_socket_one
-
 cv_output_z_b = computer.cv_audio_output_socket_two
 cv_output_x_b = computer.cv_output_socket_two
 
-led_pulse_output_length = 0.01
-
+# digital outputs
 pulse_output_a = computer.pulses_output_socket_one
 pulse_output_b = computer.pulses_output_socket_two
 
-set_start_point = SetStartPoint(irq_source=computer.pulses_input_socket_one,
-                                output=lorenz_attractor_a,
-                                trigger=machine.Pin.IRQ_RISING)
+set_start_point = SetStartPoint(
+    pulse_input=computer.pulses_input_socket_one,
+    looper=looper
+)
 
-toggle_looping = ToggleLooping(irq_source=computer.pulses_input_socket_two,
-                               output=lorenz_attractor_a,
-                               trigger=machine.Pin.IRQ_RISING)
+toggle_looping = ToggleLooping(
+    pulse_input=computer.pulses_input_socket_two,
+    looper=looper
+)
+
+# use a timer at specific frequency to do the outputs
+# write x_A, z_A, x_B, z_B and pulse if needed
+# write the outputs every 0.01 seconds - NO READING OR COMPUTING PLEASE
+
+red = WriteOutput(lorenz_system_a=lorenz_attractor_a,
+                  lorenz_system_b=lorenz_attractor_b,
+                  cv_output_x_a=cv_output_x_a,
+                  cv_output_z_a=cv_output_z_a,
+                  cv_output_x_b=cv_output_x_b,
+                  cv_output_z_b=cv_output_z_b,
+                  freq=500)
+
+
+# what remains is to check the analog inputs (preferably only if connected)
 
 time.sleep(0.5)  # pause after loading
 led_matrix.turn_off()
 
-rate_factor = 11 / 5
 
 while True:
 

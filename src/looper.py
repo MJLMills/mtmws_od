@@ -19,6 +19,16 @@ class Looper(object):
         self._counter = 0
         self._num_steps = None
 
+        self._needs_update = True
+
+    @property
+    def needs_update(self) -> bool:
+        return self._needs_update
+
+    @needs_update.setter
+    def needs_update(self, needs_update):
+        self._needs_update = needs_update
+
     def set_initial_coordinates(self) -> None:
         """Set the initial coordinates of all the looped models."""
         self.reset()

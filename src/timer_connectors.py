@@ -2,9 +2,8 @@ import machine
 
 class TimerConnector:
 
-    def __init__(self, inputs, outputs, freq):  # TODO - has to take all timer params
-        self._inputs = inputs
-        self._outputs = outputs
+    def __init__(self, freq):  # TODO - has to take all timer params
+
         self._timer = machine.Timer(-1, freq=freq, callback=self.callback)
 
     def callback(self, timer):
@@ -14,34 +13,24 @@ class WriteOutput(TimerConnector):
     """Action to take whenever the output timer runs."""
     def __init__(self,
                  looper,
-                 cv_output_x_a,
-                 cv_output_z_a,
-                 cv_output_x_b,
-                 cv_output_z_b,
+                 lorenz_a_z_mapping,
+                 lorenz_b_z_mapping,
+                 lorenz_a_x_mapping,
+                 lorenz_b_x_mapping,
                  pulse_output_a,
                  pulse_output_b,
                  pulse_led_a,
                  pulse_led_b,
                  freq):
 
-        super().__init__(inputs=[looper],
-                         outputs=[looper,
-                                  cv_output_x_a,
-                                  cv_output_z_a,
-                                  cv_output_x_b,
-                                  cv_output_z_b,
-                                  pulse_output_a,
-                                  pulse_output_b,
-                                  pulse_led_a,
-                                  pulse_led_b],
-                         freq=freq)
+        super().__init__(freq=freq)
 
         self._looper = looper
 
-        self._cv_output_x_a = cv_output_x_a
-        self._cv_output_z_a = cv_output_z_a
-        self._cv_output_x_b = cv_output_x_b
-        self._cv_output_z_b = cv_output_z_b
+        self._lorenz_a_z_mapping = lorenz_a_z_mapping
+        self._lorenz_b_z_mapping = lorenz_b_z_mapping
+        self._lorenz_a_x_mapping = lorenz_a_x_mapping
+        self._lorenz_b_x_mapping = lorenz_b_x_mapping
 
         self._pulse_output_a = pulse_output_a
         self._pulse_output_b = pulse_output_b
@@ -51,10 +40,10 @@ class WriteOutput(TimerConnector):
     def callback(self, _):
         """Write the properly scaled outputs."""
 
-        self._cv_output_z_a.write(self._looper.lorenz_system_a.mapped_z_value)
-        self._cv_output_x_a.write(self._looper.lorenz_system_a.mapped_x_value)
-        self._cv_output_z_b.write(self._looper.lorenz_system_b.mapped_z_value)
-        self._cv_output_x_b.write(self._looper.lorenz_system_b.mapped_x_value)
+        self._lorenz_a_z_mapping.write()
+        self._lorenz_b_z_mapping.write()
+        self._lorenz_a_x_mapping.write()
+        self._lorenz_b_x_mapping.write()
 
         if self._looper.lorenz_system_a.crossed_zero:
             self._pulse_led_a.turn_on()

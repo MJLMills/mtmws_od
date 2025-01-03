@@ -12,8 +12,10 @@ class RangedValue:
     def value(self, value):
         self._value = value
 
+    @property
     def min_value(self):
         return self._min_value
 
+    @property
     def max_value(self):
         return self._max_value

@@ -1,6 +1,6 @@
 import random
 from model import Model
-
+from ranged_value import RangedValue
 
 class LorenzSystem(Model):
     """The Lorenz system of ordinary differential equations.
@@ -48,8 +48,8 @@ class LorenzSystem(Model):
                  sigma: float = 10.0,
                  rho: float = 28,
                  beta: float = 8 / 3,
-                 timestep: float = 0.01,
-                 random_factor=None):
+                 timestep: RangedValue = RangedValue(max_value=0.01, min_value=0.001),
+                 random_factor: RangedValue = RangedValue(max_value=1.0, min_value=0.0)):
 
         super().__init__()
 
@@ -57,11 +57,31 @@ class LorenzSystem(Model):
         self._initial_coordinates = [x, y, z]
         self._parameters = [sigma, rho, beta]
 
-        self._timestep = timestep
+        # values used outside this class
+        self._x = RangedValue(-24, 24)
+        self._z = RangedValue(0, 55)
 
+        # values which can be changed outside this class
+        self._timestep = timestep
         self._random_factor = random_factor
 
         self._crossed_zero = False
+
+    @property
+    def timestep(self) -> RangedValue:
+        return self._timestep
+
+    @property
+    def random_factor(self) -> RangedValue:
+        return self._random_factor
+
+    @property
+    def x(self) -> RangedValue:
+        return self._x
+
+    @property
+    def z(self) -> RangedValue:
+        return self._z
 
     @property
     def n_dimensions(self) -> int:
@@ -76,7 +96,7 @@ class LorenzSystem(Model):
         super().reset()
         if self._random_factor:
             for i in range(self.n_dimensions):
-                self._coordinates[i] += self._random_factor * random.random()
+                self._coordinates[i] += self._random_factor.value * random.random()
 
     def __compute_derivatives(self):
         """Determine the partial derivatives at the current coordinates."""
@@ -103,7 +123,10 @@ class LorenzSystem(Model):
         self.__compute_derivatives()
 
         for i in range(self.n_dimensions):
-            self._coordinates[i] += self._derivatives[i] * self._timestep
+            self._coordinates[i] += self._derivatives[i] * self._timestep.value
+
+        self.x.value = self._coordinates[0]
+        self.z.value = self._coordinates[2]
 
         if (previous_x * self._coordinates[0]) < 0:
             self._crossed_zero = True

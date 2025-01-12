@@ -176,3 +176,8 @@ class Mapping(object):
 # my_mapping.write()
 #
 # print(sink.value)
+
+class MultiInputMapping(object):
+    """A mapping with multiple input ranged variables."""
+    def __init__(self, inputs: List[Ran]):
+        super().__init__()

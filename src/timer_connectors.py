@@ -1,58 +1,45 @@
 import machine
 
+
 class TimerConnector:
 
-    def __init__(self, freq):  # TODO - has to take all timer params
+    def __init__(self,
+                 mappings,
+                 looper,
+                 freq,
+                 function_mappings=None):
 
         self._timer = machine.Timer(-1, freq=freq, callback=self.callback)
+        self._mappings = mappings
+        self._function_mappings = function_mappings
+        self._looper = looper
+
+    # @timed_function
+    def update_mappings(self):
+        for mapping in self._mappings:
+            mapping.update_latest_value(write_output=True)
+
+        for function_mapping in self._function_mappings:
+            function_mapping.update()
 
     def callback(self, timer):
         raise NotImplementedError(self.__class__.__name__ + "")
 
+
+import micropython
+
 class WriteOutput(TimerConnector):
-    """Action to take whenever the output timer runs."""
-    def __init__(self,
-                 looper,
-                 lorenz_a_z_mapping,
-                 lorenz_b_z_mapping,
-                 lorenz_a_x_mapping,
-                 lorenz_b_x_mapping,
-                 pulse_output_a,
-                 pulse_output_b,
-                 pulse_led_a,
-                 pulse_led_b,
-                 freq):
+    """
+    This class holds a timer that schedules an update of the output values and
+    computes the next model values ready for next time the callback is fired.
+    # this is the only time it's worth updating the Lorenz->CV out
+    # because it's the only time the x, z values have changed (because take_step was called)
+    """
+    #@timed_function
+    def update(self, _):
+        self.update_mappings()
+        looper.take_step()
 
-        super().__init__(freq=freq)
-
-        self._looper = looper
-
-        self._lorenz_a_z_mapping = lorenz_a_z_mapping
-        self._lorenz_b_z_mapping = lorenz_b_z_mapping
-        self._lorenz_a_x_mapping = lorenz_a_x_mapping
-        self._lorenz_b_x_mapping = lorenz_b_x_mapping
-
-        self._pulse_output_a = pulse_output_a
-        self._pulse_output_b = pulse_output_b
-        self._pulse_led_a = pulse_led_a
-        self._pulse_led_b = pulse_led_b
-
+    #@timed_function
     def callback(self, _):
-        """Write the properly scaled outputs."""
-
-        self._lorenz_a_z_mapping.write()
-        self._lorenz_b_z_mapping.write()
-        self._lorenz_a_x_mapping.write()
-        self._lorenz_b_x_mapping.write()
-
-        if self._looper.lorenz_system_a.crossed_zero:
-            self._pulse_led_a.turn_on()
-            self._pulse_output_a.pulse(0.01)
-            self._pulse_led_a.turn_off()
-
-        if self._looper.lorenz_system_b.crossed_zero:
-            self._pulse_led_b.turn_on()
-            self._pulse_output_a.pulse(0.01)
-            self._pulse_led_b.turn_off()
-
-        self._looper.needs_update = True
+        micropython.schedule(self.update, 0)

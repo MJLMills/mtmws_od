@@ -73,16 +73,19 @@ class SetStartPoint(IRQConnector):
     looper
         The looper whose start point will be set by the pulse input.
     """
+
     def __init__(self,
                  pulse_input: machine.Pin,
-                 looper: Looper):
-
+                 looper: Looper,
+                 led: LED):
         super().__init__(pulse_input,
-                         outputs=[looper],
+                         outputs=[looper, led],
                          trigger=machine.Pin.IRQ_RISING)
 
         self._looper = self._outputs[0]
+        self._led = self._outputs[1]
 
     def callback(self, irq_source_pin):
         """Set the start point when the pin goes high."""
         self._looper.set_initial_coordinates()
+        self._led.pulse(0.001)

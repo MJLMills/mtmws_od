@@ -5,7 +5,7 @@ from looper import Looper
 from irq_connectors import ToggleLooping, SetStartPoint
 from timer_connectors import WriteOutput
 from mapping import Mapping, MultiMapping
-from ranged_value import RangedValue
+from ranged_variable import RangedVariable
 
 
 led_pulse_output_length = 0.01
@@ -21,18 +21,18 @@ timestep_max: float = 0.01
 # max timestep is limited by the Euler method integration accuracy.
 timestep_factor: float = 11 / 5
 # sets how much slower B is than A
-timestep_a =  RangedValue(max_value=timestep_max,
-                          min_value=timestep_min)
+timestep_a =  RangedVariable(max_value=timestep_max,
+                             min_value=timestep_min)
 
-timestep_b = RangedValue(max_value=timestep_max / timestep_factor,
-                         min_value=timestep_min / timestep_factor)
+timestep_b = RangedVariable(max_value=timestep_max / timestep_factor,
+                            min_value=timestep_min / timestep_factor)
 
 divergence_min: float = 0.0
 # min knob/CV settings will turn off sensitivity to initial conditions.
 divergence_max: float = 1.0
 # max divergence has no mathematical limit, must be arbitrarily chosen.
-divergence = RangedValue(min_value=divergence_min,
-                         max_value=divergence_max)
+divergence = RangedVariable(min_value=divergence_min,
+                            max_value=divergence_max)
 
 output_frequency_hz = 500
 # write the outputs every 2000 microseconds
@@ -146,16 +146,16 @@ divergence_mapping_b = Mapping(
 
 # where do these scale factors belong? if they both go into a single mapping
 # as inputs, a mechanism is needed to combine them and map to the output range
-scale_factor_knob_output = RangedValue(min_value=min_lorenz_system_scale_factor,
-                                       max_value=max_lorenz_system_scale_factor)
+scale_factor_knob_output = RangedVariable(min_value=min_lorenz_system_scale_factor,
+                                          max_value=max_lorenz_system_scale_factor)
 
-scale_factor_cv_output = RangedValue(min_value=min_lorenz_system_scale_factor,
-                                     max_value=max_lorenz_system_scale_factor)
+scale_factor_cv_output = RangedVariable(min_value=min_lorenz_system_scale_factor,
+                                        max_value=max_lorenz_system_scale_factor)
 
 scale_factor_mapping = MultiMapping(
     sources=[cv_magnitude_knob, cv_magnitude_cv_input],
-    output=RangedValue(min_value=min_lorenz_system_scale_factor,
-                       max_value=max_lorenz_system_scale_factor)
+    output=RangedVariable(min_value=min_lorenz_system_scale_factor,
+                          max_value=max_lorenz_system_scale_factor)
 )
 
 # pass these two mappings to another mapping that deals with them

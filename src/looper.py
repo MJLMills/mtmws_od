@@ -21,6 +21,12 @@ class Looper(object):
 
         self._needs_update = True
 
+    def is_looping(self):
+        return self._looping == True
+
+    def is_not_looping(self):
+        return not self.is_looping()
+
     @property
     def needs_update(self) -> bool:
         return self._needs_update
@@ -49,11 +55,12 @@ class Looper(object):
         taking model steps will check if the counter hits the desired number of
         steps and restart.
         """
-        self._looping = True
-        self._num_steps = self._counter
-        self.reset()
-        for model in self._models:
-            model.reset()
+        if self._looping == False:
+            self._looping = True
+            self._num_steps = self._counter
+            self.reset()
+            for model in self._models:
+                model.reset()
 
     def stop_looping(self) -> None:
         """Stop looping the models.
@@ -63,9 +70,11 @@ class Looper(object):
         continues to count from the start point in case the looping is started
         again, so that the start point is kept.
         """
-        self._looping = False
-        self._num_steps = None
+        if self._looping == True:
+            self._looping = False
+            self._num_steps = None
 
+    #@timed_function
     def take_step(self) -> None:
         """Take a step along each model's trajectory.
 
@@ -77,6 +86,8 @@ class Looper(object):
         initial position, so take_step is not called as this would result in a
         double step in a single cycle.
         """
+        #self._needs_update = False
+
         if self._looping:
             if self._counter == self._num_steps:
                 for model in self._models:

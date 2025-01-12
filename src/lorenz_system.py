@@ -1,6 +1,6 @@
-import random
 from model import Model
-from ranged_value import RangedValue
+import random
+from ranged_variable import RangedVariable
 
 class LorenzSystem(Model):
     """The Lorenz system of ordinary differential equations.
@@ -41,6 +41,7 @@ class LorenzSystem(Model):
     reset
         Return the trajectory to the initial coordinates.
     """
+
     def __init__(self,
                  x: float = 0.9,
                  y: float = 0.0,
@@ -48,8 +49,12 @@ class LorenzSystem(Model):
                  sigma: float = 10.0,
                  rho: float = 28,
                  beta: float = 8 / 3,
-                 timestep: RangedValue = RangedValue(max_value=0.01, min_value=0.001),
-                 random_factor: RangedValue = RangedValue(max_value=1.0, min_value=0.0)):
+                 timestep: RangedVariable = RangedVariable(max_value=0.01,
+                                                           min_value=0.001,
+                                                           value=0.01),
+                 random_factor: RangedVariable = RangedVariable(max_value=1.0,
+                                                                min_value=0.0,
+                                                                value=0.0)):
 
         super().__init__()
 
@@ -58,29 +63,35 @@ class LorenzSystem(Model):
         self._parameters = [sigma, rho, beta]
 
         # values used outside this class
-        self._x = RangedValue(-24, 24)
-        self._z = RangedValue(0, 55)
+        self._x = RangedVariable(min_value=-24, max_value=24,
+                                 value=self._coordinates[0])
+        self._z = RangedVariable(min_value=0, max_value=55,
+                                 value=self._coordinates[2])
 
         # values which can be changed outside this class
         self._timestep = timestep
         self._random_factor = random_factor
 
         self._crossed_zero = False
+        self._previous_x = None
+
+    def crossed_zero(self):
+        return self._crossed_zero
 
     @property
-    def timestep(self) -> RangedValue:
+    def timestep(self) -> RangedVariable:
         return self._timestep
 
     @property
-    def random_factor(self) -> RangedValue:
+    def random_factor(self) -> RangedVariable:
         return self._random_factor
 
     @property
-    def x(self) -> RangedValue:
+    def x(self) -> RangedVariable:
         return self._x
 
     @property
-    def z(self) -> RangedValue:
+    def z(self) -> RangedVariable:
         return self._z
 
     @property
@@ -96,19 +107,8 @@ class LorenzSystem(Model):
         super().reset()
         if self._random_factor:
             for i in range(self.n_dimensions):
-                self._coordinates[i] += self._random_factor.value * random.random()
-
-    def __compute_derivatives(self):
-        """Determine the partial derivatives at the current coordinates."""
-        self._derivatives = [
-            self._parameters[0] * (
-                        self._coordinates[1] - self._coordinates[0]),
-            self._coordinates[0] * (
-                        self._parameters[1] - self._coordinates[2]) -
-            self._coordinates[1],
-            (self._coordinates[0] * self._coordinates[1]) - (
-                        self._parameters[2] * self._coordinates[2])
-        ]
+                self._coordinates[
+                    i] += self._random_factor.value * random.random()
 
     def take_step(self) -> None:
         """Determine the value of f(t_n+1, x, y, z) at the next timestep.
@@ -120,15 +120,21 @@ class LorenzSystem(Model):
         """
         previous_x = self._coordinates[0]
 
-        self.__compute_derivatives()
+        timestep_value = self._timestep.value
+        x = self._coordinates[0]
+        y = self._coordinates[1]
+        z = self._coordinates[2]
 
-        for i in range(self.n_dimensions):
-            self._coordinates[i] += self._derivatives[i] * self._timestep.value
+        self._coordinates[0] = x + (
+                    timestep_value * (self._parameters[0] * (y - x)))
+        self._coordinates[1] = y + (
+                    timestep_value * (x * (self._parameters[1] - z) - y))
+        self._coordinates[2] = z + (
+                    timestep_value * ((x * y) - (self._parameters[2] * z)))
 
-        self.x.value = self._coordinates[0]
-        self.z.value = self._coordinates[2]
+        self._x.value = self._coordinates[0]
+        self._z.value = self._coordinates[2]
 
-        if (previous_x * self._coordinates[0]) < 0:
+        self._crossed_zero = False
+        if (previous_x * self._coordinates[0]) <= 0:
             self._crossed_zero = True
-        else:
-            self._crossed_zero = False

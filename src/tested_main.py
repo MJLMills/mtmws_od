@@ -2,6 +2,9 @@ import machine
 import time
 import random
 
+# BIG TODO - the hardware classes are ranged variables but atm are just implemented casually
+# this should be made formal under test
+
 import time
 
 
@@ -18,32 +21,49 @@ def timed_function(f, *args, **kwargs):
     return new_func
 
 
-class RangedValue:
+class RangedVariable:  # TODO - change this to RangedVariable
+    """
+    Ranged variables are controllable parameters.
 
-    def __init__(self, min_value, max_value, initial_value=None):
+    They can belong to hardware inputs and hardware outputs.
+    They can be software variables (to be set or read).
 
-        if initial_value is None:
-            self._value = 0
-        else:
-            self._value = initial_value
+    The reason they need to be ranged is that other variables are
+    mapped to them that have different ranges, so there's (almost)
+    always a scaling involved.
 
+    Ranged values are connected together by "mappings". These are
+    responsible for taking the input ranged value and computing the
+    output ranged value (using the ranges).
+
+    The max and min values can be mutable, that is, you can change
+    the range of a ranged value in some cases. Since this introduces
+    complexity it should be a subclass.
+    """
+
+    def __init__(self, min_value, max_value, value):
+        self._value = value
         self._min_value = min_value
         self._max_value = max_value
 
     @property
     def value(self):
+        """The value of this ranged variable."""
         return self._value
 
     @value.setter
     def value(self, value):
+        """Set the value of this ranged variable."""
         self._value = value
 
     @property
     def min_value(self):
+        """The minimum possible value of this ranged variable."""
         return self._min_value
 
     @property
     def max_value(self):
+        """The maximum possible value of this ranged variable."""
         return self._max_value
 
     def update_latest_value(self):
@@ -63,13 +83,37 @@ class RangedValue:
             self._max_value), "value = ", str(self._value)
 
 
-class IO(object):
+class HardwareComponent(object):
     """An abstract class for a hardware object with an associated GPIO pin.
 
     All hardware objects (other than the CV/Audio output sockets) have a single
     associated GPIO pin, regardless of whether they use that pin directly or
     through the multiplexer (in which case the GPIO pin may be shared). This
     pin has a unique integer identifier.
+
+    # i'm fairly convinced there's no way to change the ranges on inputs
+    # that's because the read will always return a value in the hardware range
+    # that then can be mapped elsewhere. If you e.g. set the min to 1000, the read
+    # method will still carry on reading whatever is at the pin. You would have to map
+    # the hardware reads to another range, which you're going to be doing anyway so
+    # it's a waste of time.
+    # the min/max values then are a form of calibration if they might differ for
+    # each specific workshop system.
+
+    main knob - its ranged variable is the u16 read at the multiplexer, range is fixed by hardware constraints
+    x knob - same
+    y knob - same
+    z switch - same (but really is mapped to one of three states at any given instant)
+
+    CV input (1,2) - same
+    CV/Audio input (1,2) - u16 read straight from pin
+
+    # these you may want to control the range of, because to write a limited range you
+    # literally have to change the range of the hardware output because the value is computed
+    # by mapping whatever input to the output based on that range.
+    CV output (1,2) - PWM output
+    CV/Audio output (1,2) - SPI/DAC output
+
     """
 
     @property
@@ -80,17 +124,20 @@ class IO(object):
         )
 
 
-class AnalogInput(IO):
+class AnalogInput(HardwareComponent):
     """An abstract class for an analog input hardware object.
 
     There are eight analog inputs on the Computer. The main, X and Y knobs,
     the Z-switch and two pairs of CV and CV/Audio inputs. Excepting the
     CV/Audio inputs, all reach the Computer via a multiplexer, so there are in
     total four unique micropython ADC objects attached to GPIO pins with IDs
-    26, 27, 28 and 29.
+    26, 27, 28 and 29. The GPIO pins 28 and 29 are connected to the multiplexer
+    to provide values from the 6 selectable inputs. The GPIO pins 26 and 27
+    are directly connected to the CV/Audio inputs.
     """
 
-    def __init__(self):
+    def __init__(
+            self):  # input_value property should be a ranged variable instance - this may be true of every IO object?
         self._latest_value = None
 
     @property
@@ -129,8 +176,11 @@ class AnalogInput(IO):
         or shift bits 4 positions to the right, effectively discarding the four
         least significant bits.
         u12 = u16 >> 4
+        Neither of these seems strictly necessary on read since the mappings take
+        care of converting to the right ranges, and either way python is storing these
+        as integers, 12-bit or 16-bit it doesn't care.
         """
-        return self.adc.read_u16()  # >> 4
+        return self.adc.read_u16()
 
     def update_latest_value(self):
         """Update the latest value of this analog input."""
@@ -394,7 +444,7 @@ class KnobY(MultiplexedInput):
 
 
 class AnalogOutput(
-    IO):  # TODO - right now this _is_ a RangedValue - it implements the API of that class
+    HardwareComponent):  # TODO - right now this _is_ a RangedVariable - it implements the API of that class
     """"""
 
     @property
@@ -409,13 +459,26 @@ class AnalogOutput(
             self.__class__.__name__ + " does not implement max_value."
         )
 
+    @property
+    def hardware_min(self) -> int:
+        raise NotImplementedError(
+            self.__class__.__name__ + " does not implement max_value."
+        )
+
+    @property
+    def hardware_max(self) -> int:
+        raise NotImplementedError(
+            self.__class__.__name__ + " does not implement max_value."
+        )
+
     def write(self, value):
         raise NotImplementedError(
             self.__class__.__name__ + " does not implement write."
         )
 
 
-class CVOutputSocket(AnalogOutput):
+class CVOutputSocket(
+    AnalogOutput):  # both AnalogOutput classes have settable ranges to limit output when needed.
     """The CV output sockets of the Computer.
 
     These sockets use PWM output
@@ -441,13 +504,43 @@ class CVOutputSocket(AnalogOutput):
                                duty_u16=duty_cycle,
                                invert=True)
 
+        self._ranged_min_value = RangedVariable(
+            min_value=self.hardware_max / 2,
+            max_value=0,
+            value=0)
+
+        self._ranged_max_value = RangedVariable(
+            min_value=self.hardware_max / 2,
+            max_value=self.hardware_max,
+            value=self.hardware_max)
+
     @property
-    def min_value(self) -> int:
+    def hardware_min(self) -> int:
         return 0
 
     @property
-    def max_value(self) -> int:
+    def hardware_max(self) -> int:
         return 65535
+
+    @property
+    def min_value(self) -> int:
+        """The minimum value of the analog output."""
+        return self._ranged_min_value.value
+
+    @min_value.setter
+    def min_value(self, min_value: int) -> None:
+        """Set the minimum value of the analog output."""
+        self._ranged_min_value.value = int(min_value)
+
+    @property
+    def max_value(self) -> int:
+        """The maximum value of the analog output."""
+        return self._ranged_max_value.value
+
+    @max_value.setter
+    def max_value(self, max_value: int) -> None:
+        """Set the maximum value of the analog output."""
+        self._ranged_max_value.value = int(max_value)
 
     def write(self, value: int):
         """Set the PWM duty cycle equal to the provided unsigned 16-bit int value."""
@@ -528,13 +621,15 @@ class CVAudioOutputSocket(AnalogOutput):
             mosi=self.__SDI_MOSI_PIN_ID,
         )
 
-        self._ranged_min_value = RangedValue(min_value=self.hardware_max / 2,
-                                             max_value=0,
-                                             initial_value=0)
+        self._ranged_min_value = RangedVariable(
+            min_value=self.hardware_max / 2,
+            max_value=0,
+            value=0)
 
-        self._ranged_max_value = RangedValue(min_value=self.hardware_max / 2,
-                                             max_value=self.hardware_max,
-                                             initial_value=self.hardware_max)
+        self._ranged_max_value = RangedVariable(
+            min_value=self.hardware_max / 2,
+            max_value=self.hardware_max,
+            value=self.hardware_max)
 
     @property
     def hardware_min(self) -> int:
@@ -713,10 +808,12 @@ class LorenzSystem(Model):
                  sigma: float = 10.0,
                  rho: float = 28,
                  beta: float = 8 / 3,
-                 timestep: RangedValue = RangedValue(max_value=0.01,
-                                                     min_value=0.001),
-                 random_factor: RangedValue = RangedValue(max_value=1.0,
-                                                          min_value=0.0)):
+                 timestep: RangedVariable = RangedVariable(max_value=0.01,
+                                                           min_value=0.001,
+                                                           value=0.01),
+                 random_factor: RangedVariable = RangedVariable(max_value=1.0,
+                                                                min_value=0.0,
+                                                                value=0.0)):
 
         super().__init__()
 
@@ -725,8 +822,10 @@ class LorenzSystem(Model):
         self._parameters = [sigma, rho, beta]
 
         # values used outside this class
-        self._x = RangedValue(-24, 24)
-        self._z = RangedValue(0, 55)
+        self._x = RangedVariable(min_value=-24, max_value=24,
+                                 value=self._coordinates[0])
+        self._z = RangedVariable(min_value=0, max_value=55,
+                                 value=self._coordinates[2])
 
         # values which can be changed outside this class
         self._timestep = timestep
@@ -735,22 +834,23 @@ class LorenzSystem(Model):
         self._crossed_zero = False
         self._previous_x = None
 
+    def crossed_zero(self):
+        return self._crossed_zero
+
     @property
-    def timestep(self) -> RangedValue:
+    def timestep(self) -> RangedVariable:
         return self._timestep
 
     @property
-    def random_factor(self) -> RangedValue:
+    def random_factor(self) -> RangedVariable:
         return self._random_factor
 
     @property
-    def x(self) -> RangedValue:
-        self._x.value = self._coordinates[0]
+    def x(self) -> RangedVariable:
         return self._x
 
     @property
-    def z(self) -> RangedValue:
-        self._z.value = self._coordinates[2]
+    def z(self) -> RangedVariable:
         return self._z
 
     @property
@@ -799,11 +899,13 @@ class LorenzSystem(Model):
             self._crossed_zero = True
 
 
-class Mapping(object):
+class Mapping(
+    object):  # stop this from assuming float is OK. some mappings can be done by int precision drop (16-12 e.g. is >>4) or fixed point?
+    """A connection from an input ranged variable to an output ranged variable."""
 
     def __init__(self,
-                 source: RangedValue,
-                 output: RangedValue,
+                 source: RangedVariable,
+                 output: RangedVariable,
                  ranges_frozen: bool = True):
 
         self._source = source
@@ -815,8 +917,15 @@ class Mapping(object):
         self._output_min_value = self._output.min_value
         self._output_max_value = self._output.max_value
 
-        self._slope = (self._output_max_value - self._output_min_value) / (
-                    self._source_max_value - self._source_min_value)
+        output_range = self._output_max_value - self._output_min_value
+        input_range = self._source_max_value - self._source_min_value
+
+        if input_range == output_range:
+            self._slope = 1
+        else:
+            self._slope = (self._output_max_value - self._output_min_value) / (
+                        self._source_max_value - self._source_min_value)
+
         self.update_latest_value(update_source_value=True)
 
     def compute_source_value(self, update_source_value=False):
@@ -976,7 +1085,7 @@ class Looper(object):
             self.start_looping()
 
 
-class PulseInputSocket(IO):
+class PulseInputSocket(HardwareComponent):
     """
     Inverted digital input: Low input = High reading.
     For example, use a falling edge to track the start of a pulse.
@@ -1028,7 +1137,7 @@ class PulseInputSocketTwo(PulseInputSocket):
         return 3
 
 
-class LED(IO):
+class LED(HardwareComponent):
     """A light emitting diode on the module.
 
     If the pin value is set to 1 (i.e. True), the LED is illuminated.
@@ -1083,6 +1192,9 @@ class LED(IO):
 
     @value.setter
     def value(self, value):
+        self.pin.value(value)
+
+    def set_value(self, value):
         self.pin.value(value)
 
     def pulse(self, time_s):
@@ -1282,7 +1394,7 @@ class SwitchZ(MultiplexedInput):
         return SwitchZ.MID_UP_BOUNDARY <= self.latest_value <= SwitchZ.UP_MAX
 
 
-class PulseOutputSocket(IO):
+class PulseOutputSocket(HardwareComponent):
     """An output socket of the computer, sending pulses.
 
     Inverted digital output: 1/true = low, 0/false=high.
@@ -1315,6 +1427,9 @@ class PulseOutputSocket(IO):
         time.sleep(duration)
         self.turn_off()
 
+    def set_value(self, value):
+        self.pin.value(value)
+
 
 class PulseOutputSocketOne(PulseOutputSocket):
     """The first (leftmost) pulse input socket."""
@@ -1323,6 +1438,116 @@ class PulseOutputSocketOne(PulseOutputSocket):
     def pin_id(self) -> int:
         """The unique identifier of the GPIO pin used by this class."""
         return 8
+
+
+class CVInputSocket(MultiplexedInput):
+    """The CV input sockets of the Computer.
+
+    CV inputs are not inverted. TODO - check these on a multimeter
+    -5V reads ~350
+    0V reads ~2030
+    +5V reads ~3700
+    (these are from the docs and are hinting at calibration from the uint12
+    values to actual voltages)
+    """
+
+    @property
+    def pin_id(self):
+        """The unique identifier of the GPIO pin used by this class."""
+        return 29  # try not to redefine this here as a literal, get from multiplexer by name?
+
+    @property
+    def min_value(self) -> int:
+        return 0
+
+    @property
+    def max_value(self) -> int:
+        return 65535
+
+
+class CVInputSocketOne(CVInputSocket):
+    """The first (left-most) CV input socket of the Computer."""
+
+    @property
+    def mux_logic_a_pin_value(self) -> bool:
+        """The value of the first multiplexer login pin for this input."""
+        return False
+
+    @property
+    def mux_logic_b_pin_value(self) -> bool:
+        """The value of the second multiplexer login pin for this input."""
+        return False
+
+
+class CVInputSocketTwo(CVInputSocket):
+    """The second (right-most) CV input socket of the Computer."""
+
+    @property
+    def mux_logic_a_pin_value(self) -> bool:
+        """The value of the first multiplexer login pin for this input."""
+        return False
+
+    @property
+    def mux_logic_b_pin_value(self):
+        """The value of the second multiplexer login pin for this input."""
+        return True
+
+
+class CVAudioInputSocket(AnalogInput):
+    """The CV/Audio input sockets of the computer.
+
+    The CV/Audio analog inputs are bipolar (inverted) and DC-coupled.
+    They require calibration for precise readings.
+    The values returned by machine.ADC.read_u16 are in the range:
+    +6v = 0
+     0v = 32768
+    -6v = 65535
+    In practice the precision of the internal ADC is closer to 12-bit.
+
+    The left input is normalled to the right input, so if only one
+    socket is plugged in, both channels receive the same input.
+
+    The input signals are scaled (presumably in hardware) and then
+    go to channels 0 and 1 of an internal analog to digital converter
+    (Note that the multiplexer makes use of channels 3 and 4 to read
+    the CV inputs, knobs and switch). From there they appear to go to
+    two assigned GPIO pins (26 and 27) on the Pi, from which they are
+    directly readable as analog inputs.
+    """
+
+    def __init__(self):
+        self._adc = machine.ADC(self.pin_id)
+        super().__init__()
+
+    @property
+    def adc(self):
+        return self._adc
+
+    @property
+    def min_value(self) -> int:
+        return 0
+
+    @property
+    def max_value(self) -> int:
+        return 65535
+
+
+class CVAudioInputSocketOne(CVAudioInputSocket):
+    """The left CV/Audio input socket."""
+
+    @property
+    def pin_id(self) -> int:
+        """The unique identifier of the GPIO pin used by this class."""
+        return 27
+
+
+class CVAudioInputSocketTwo(CVAudioInputSocket):
+    """The right CV/Audio input socket."""
+
+    @property
+    def pin_id(self) -> int:
+        """The unique identifier of the GPIO pin used by this class."""
+        return 26
 
 
 class PulseOutputSocketTwo(PulseOutputSocket):
@@ -1656,24 +1881,21 @@ class TimerConnector:
     def __init__(self,
                  mappings,
                  looper,
-                 pulse_led_a,
-                 pulse_led_b,
-                 pulse_output_socket_a,
-                 pulse_output_socket_b,
-                 freq):
+                 freq,
+                 function_mappings=None):
+
         self._timer = machine.Timer(-1, freq=freq, callback=self.callback)
         self._mappings = mappings
+        self._function_mappings = function_mappings
         self._looper = looper
-
-        self._pulse_led_a = pulse_led_a
-        self._pulse_led_b = pulse_led_b
-        self._pulse_output_socket_a = pulse_output_socket_a
-        self._pulse_output_socket_b = pulse_output_socket_b
 
     # @timed_function
     def update_mappings(self):
         for mapping in self._mappings:
             mapping.update_latest_value(write_output=True)
+
+        for function_mapping in self._function_mappings:
+            function_mapping.update()
 
     def callback(self, timer):
         raise NotImplementedError(self.__class__.__name__ + "")
@@ -1683,6 +1905,12 @@ import micropython
 
 
 class WriteOutput(TimerConnector):
+    """
+    This class holds a timer that schedules an update of the output values and
+    computes the next model values ready for next time the callback is fired.
+    # this is the only time it's worth updating the Lorenz->CV out
+    # because it's the only time the x, z values have changed (because take_step was called)
+    """
 
     # @timed_function
     def update(self, _):
@@ -1690,22 +1918,9 @@ class WriteOutput(TimerConnector):
         looper.take_step()
 
     # @timed_function
-    def callback(self, timer):
+    def callback(self, _):
         micropython.schedule(self.update, 0)
-        # this is the only time it's worth updating the Lorenz->CV out
 
-
-#        if looper._models[0]._crossed_zero:
-#            self._pulse_led_a.turn_on()
-#            self._pulse_output_socket_a.pulse(0.001)
-#            self._pulse_led_a.turn_off()
-
-#        if looper._models[1]._crossed_zero:
-#            self._pulse_led_b.turn_on()
-#            self._pulse_output_socket_b.pulse(0.001)
-#            self._pulse_led_b.turn_off()
-
-# self._looper.needs_update = True
 
 class IRQConnector(object):
     """Connect an IRQ source to an output.
@@ -1815,6 +2030,16 @@ class FunctionMapping(object):  # TODO - one signal can fire multiple slots
         self._is_connected = True
 
 
+class BoolBoolMapping(object):
+
+    def __init__(self, signal, slot):
+        self._signal = signal
+        self._slot = slot
+
+    def update(self):
+        self._slot(self._signal)
+
+
 computer = Computer()
 
 led_matrix = computer.led_matrix
@@ -1826,28 +2051,52 @@ timestep_max: float = 0.01
 # max timestep is limited by the Euler method integration accuracy.
 timestep_factor: float = 11 / 5
 # sets how much slower B is than A
-timestep_a = RangedValue(min_value=timestep_min,
-                         max_value=timestep_max)
+timestep_a = RangedVariable(min_value=timestep_min,
+                            max_value=timestep_max,
+                            value=timestep_max)
 
-timestep_b = RangedValue(max_value=timestep_max / timestep_factor,
-                         min_value=timestep_min / timestep_factor)
+timestep_b = RangedVariable(max_value=timestep_max / timestep_factor,
+                            min_value=timestep_min / timestep_factor,
+                            value=timestep_max / timestep_factor)
 
 divergence_min: float = 0.0
 # min knob/CV settings will turn off sensitivity to initial conditions.
 divergence_max: float = 5.0
 # max divergence has no mathematical limit, must be arbitrarily chosen.
-divergence = RangedValue(min_value=divergence_min,
-                         max_value=divergence_max)
+divergence = RangedVariable(min_value=divergence_min,
+                            max_value=divergence_max,
+                            value=divergence_min)
 
-cv_out_mappings = [
+# TODO - here we have one knob mapping to many software variables, could this be done in a single class (one in to many out?)
+# try connecting the input socket to these in place of the X knob and see if you can get VCA behaviour from it without timing
+cv_output_range_mappings = [
     Mapping(source=computer.knob_x,
             output=computer.cv_audio_output_socket_one._ranged_min_value),
+    # int to int
     Mapping(source=computer.knob_x,
             output=computer.cv_audio_output_socket_one._ranged_max_value),
+    # int to int
+
     Mapping(source=computer.knob_x,
             output=computer.cv_audio_output_socket_two._ranged_min_value),
+    # int to int
     Mapping(source=computer.knob_x,
             output=computer.cv_audio_output_socket_two._ranged_max_value),
+    # int to int
+
+    Mapping(source=computer.knob_x,
+            output=computer.cv_output_socket_one._ranged_min_value),
+    # int to int
+    Mapping(source=computer.knob_x,
+            output=computer.cv_output_socket_one._ranged_max_value),
+    # int to int
+
+    Mapping(source=computer.knob_x,
+            output=computer.cv_output_socket_two._ranged_min_value),
+    # int to int
+    Mapping(source=computer.knob_x,
+            output=computer.cv_output_socket_two._ranged_max_value),
+    # int to int
 ]
 
 lorenz_attractor_a = LorenzSystem(
@@ -1863,11 +2112,24 @@ lorenz_attractor_b = LorenzSystem(
 looper = Looper(models=[lorenz_attractor_a, lorenz_attractor_b])
 """The looper that controls the time-stepping of multiple models."""
 
+# instantiate the CV inputs
+# timestep_cv_in = computer.cv_audio_input_socket_one
+# divergence_cv_in = computer.cv_audio_input_socket_two
+# a_magnitude_cv_in = computer.cv_input_socket_one  # try hooking these up
+# b_magnitude_cv_in = computer.cv_input_socket_one
+
+
 hardware_input_mappings = [
     Mapping(source=computer.main_knob, output=lorenz_attractor_a.timestep),
+    # int to float
     Mapping(source=computer.main_knob, output=lorenz_attractor_b.timestep),
+    # int to float
+    #    Mapping(source=computer.cv_audio_input_socket_one, output=lorenz_attractor_a.timestep),
+    #    Mapping(source=computer.cv_audio_input_socket_one, output=lorenz_attractor_b.timestep),
     Mapping(source=computer.knob_y, output=lorenz_attractor_a.random_factor),
+    # int to float
     Mapping(source=computer.knob_y, output=lorenz_attractor_b.random_factor)
+    # int to float
 ]
 """Mappings from hardware inputs to software outputs."""
 
@@ -1915,10 +2177,27 @@ set_start_point = SetStartPoint(
 pulse_led_a = computer.led_matrix.get_by_index(1)
 pulse_led_b = computer.led_matrix.get_by_index(2)
 
+pulse_led_on_crossing_a = BoolBoolMapping(lorenz_attractor_a._crossed_zero,
+                                          pulse_led_a.set_value)
+
+pulse_socket_on_crossing_a = BoolBoolMapping(lorenz_attractor_a._crossed_zero,
+                                             computer.pulses_output_socket_one.set_value)
+
+pulse_led_on_crossing_b = BoolBoolMapping(lorenz_attractor_b._crossed_zero,
+                                          pulse_led_b.set_value)
+
+pulse_socket_on_crossing_b = BoolBoolMapping(lorenz_attractor_b._crossed_zero,
+                                             computer.pulses_output_socket_two.set_value)
+
+timer_function_mappings = [pulse_led_on_crossing_a,
+                           pulse_socket_on_crossing_a,
+                           pulse_led_on_crossing_b,
+                           pulse_socket_on_crossing_b]
+
 write_output = WriteOutput(
     mappings=[
-        Mapping(source=lorenz_attractor_a.z,
-                output=computer.cv_audio_output_socket_one,
+        Mapping(source=lorenz_attractor_a.z,  # float (0, 50)
+                output=computer.cv_audio_output_socket_one,  # int (0, 4095)
                 ranges_frozen=False),
         Mapping(source=lorenz_attractor_a.x,
                 output=computer.cv_output_socket_one,
@@ -1931,42 +2210,47 @@ write_output = WriteOutput(
                 ranges_frozen=False)
     ],
     looper=looper,
-    pulse_led_a=pulse_led_a,
-    pulse_led_b=pulse_led_b,
-    pulse_output_socket_a=computer.pulses_output_socket_one,
-    # these are causing a pause
-    pulse_output_socket_b=computer.pulses_output_socket_two,
-    freq=25
+    freq=300,  # max is ~300 atm
+    function_mappings=[pulse_led_on_crossing_a,
+                       pulse_socket_on_crossing_a,
+                       pulse_led_on_crossing_b,
+                       pulse_socket_on_crossing_b]
 )
 
 time.sleep(0.5)
 led_matrix.turn_off()
 
 
+# these are all candidates for class methods of some sort of main loop class (or class having a main loop)
 # @timed_function
-def update_function_mappings(function_mappings):
+def update_function_mappings(function_mappings) -> None:
+    """Update mappings from boolean-valued functions (on hardware?) to functions."""
     for function_mapping in function_mappings:
         function_mapping.update()
 
 
 # @timed_function
-def update_cv_out_mappings(cv_out_mappings):
-    for mapping in cv_out_mappings:
+def update_cv_output_range_mappings(cv_output_range_mappings) -> None:
+    """Update mappings from hardware to the CV output hardware ranges."""
+    for mapping in cv_output_range_mappings:
         mapping.update_latest_value(write_output=True,
-                                    update_source_value=True)
+                                    update_source_value=False)
 
 
 # @timed_function
-def update_hardware_input_mappings(hardware_input_mappings):
+def update_hardware_input_mappings(hardware_input_mappings) -> None:
+    """Update mappings from hardware objects to software variables."""
     for mapping in hardware_input_mappings:
         mapping.update_latest_value(write_output=True,
                                     update_source_value=False)
 
 
 while True:
-    # this stuff can just happen as-needed, technically doesn't need to be done this often but the CPU is running anyway?
-    # optimizing this helps all future projects but won't speed up this one
+    # poll the analog inputs once (this is currently pointlessly reading the CV ins for timing)
     computer.update_analog_inputs()
+
+    # update mappings from the analog inputs to their destinations
     update_hardware_input_mappings(hardware_input_mappings)
+    update_cv_output_range_mappings(cv_output_range_mappings)
     update_function_mappings(function_mappings)
-    update_cv_out_mappings(cv_out_mappings)
+

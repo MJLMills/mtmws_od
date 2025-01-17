@@ -1,6 +1,9 @@
 import machine
 
-
+# this should now not require mapping updates, just read/update values that
+# fire signals to be consumed by the rest of the package - way easier
+# when you call take_step, the x,z update a x crossing signals fire which are
+# connected to slots on the CV outputs, pulse outputs and LEDs
 class TimerConnector:
 
     def __init__(self,

@@ -1,6 +1,14 @@
 import machine
 from looper import Looper
 
+# TODO - these are technically signals and slots, the IRQ firing is a signal
+# and the callback(s) it calls is a slot
+# see if these can be made syntactically the same as signal/slots
+# e.g. the callback could just emit a signal then the code can register slots
+# to that signal
+# this code can probably be housed in the DigitalInput classes (pulse inputs)
+# since the IRQ is set on the pulse input pin.
+# check if a pin can have multiple IRQs
 
 class IRQConnector(object):
     """Connect an IRQ source to an output.

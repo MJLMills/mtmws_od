@@ -242,7 +242,7 @@ timestep_cv_input_socket.jack_removed.connect(
 )
 
 random_factor_cv_input_socket = computer.cv_input_socket_two
-random_factor_cv_input_socket.set_voltage_range((0, 5))
+random_factor_cv_input_socket.set_voltage_range((-5, 5))
 
 random_factor_cv_input_socket.jack_inserted.connect(
     #lambda: print("Random factor (CV two) jack inserted"),

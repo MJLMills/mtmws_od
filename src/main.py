@@ -1,6 +1,6 @@
 # Define constants
 
-MAXIMUM_TIMER_FREQUENCY_HZ = 200
+MAXIMUM_TIMER_FREQUENCY_HZ = 180
 """The maximum frequency (in Hz) at which the timed loop will be executed.
 The upper bound of this value is limited by the execution time of the timed
 loop, which is determined by the model update and output socket write timings.
@@ -10,43 +10,37 @@ fastest speed at which the program can run.
 """
 
 INPUT_SOCKET_UPDATE_STEPS = 24
-"""
-The iteration count of the main loop before the input sockets are checked.
+"""The iteration count of the main loop before the input sockets are checked.
 This should be set low enough that the program detects the plugging and 
 unplugging of jacks in the input socket effectively instantly, but high enough
 that cycles are not wasted checking the normalization probe.
 """
 
 MINIMUM_TIMESTEP: float = 0.0001
-"""
-The slowest settable timestep of the Lorenz system.
+"""The slowest settable timestep of the Lorenz system.
 This value has no mathematical lower limit, so it is arbitrarily chosen.
 When a jack is plugged into the timestep CV input, the minimum timestep
 is controlled by the timestep knob between the defined maximum timestep
-and a value a factor of max_timestep/min_timestep smaller than this value.
+and a value a factor max_timestep/min_timestep smaller than this value.
 """
 
 MAXIMUM_TIMESTEP: float = 0.01
-"""
-The fastest settable timestep of the Lorenz system.
+"""The fastest settable timestep of the Lorenz system.
 The upper limit of this value depends on the Euler method integration accuracy.
 """
 
 TIMESTEP_FACTOR: float = 5 / 11
-"""
-Determines how much slower Lorenz attractor B is than Lorenz attractor A.
+"""Determines how much slower Lorenz attractor B is than Lorenz attractor A.
 This factor is multiplicative so must be between 0 and 1.
 """
 
 RANDOM_FACTOR_MIN: float = 0.0
-"""
-The smallest random factor to apply to the position on trajectory reset.
+"""The smallest random factor to apply to the position on trajectory reset.
 A value of zero allows turning off this sensitivity with hardware controls.
 """
 
 RANDOM_FACTOR_MAX: float = 2.0
-"""
-The largest random factor to apply to the position on trajectory reset.
+"""The largest random factor to apply to the position on trajectory reset.
 This value has no mathematical limit and is arbitrarily chosen.
 Too low a value makes the sensitivity audibly difficult to detect.
 Too high a value makes the looping audibly difficult to detect.
@@ -60,9 +54,7 @@ timestep_a = RangedVariable(
     minimum=RangedVariable(minimum=MINIMUM_TIMESTEP / (MAXIMUM_TIMESTEP / MINIMUM_TIMESTEP),
                            maximum=MAXIMUM_TIMESTEP,
                            value=MINIMUM_TIMESTEP),
-    maximum=RangedVariable(minimum=MAXIMUM_TIMESTEP,
-                           maximum=MAXIMUM_TIMESTEP,
-                           value=MAXIMUM_TIMESTEP),
+    maximum=MAXIMUM_TIMESTEP,
     value=MAXIMUM_TIMESTEP
 )
 """The timestep ranged variable for Lorenz attractor A."""
@@ -74,9 +66,7 @@ timestep_b = RangedVariable(
     minimum=RangedVariable(minimum=b_minimum_timestep / (b_maximum_timestep / b_minimum_timestep),
                            maximum=b_maximum_timestep,
                            value=b_minimum_timestep),
-    maximum=RangedVariable(minimum=b_maximum_timestep,
-                           maximum=b_maximum_timestep,
-                           value=b_maximum_timestep),
+    maximum=b_maximum_timestep,
     value=b_maximum_timestep
 )
 """The timestep ranged variable for Lorenz attractor B."""
@@ -110,7 +100,7 @@ looper = Looper(models=[lorenz_attractor_a, lorenz_attractor_b])
 # Create the computer hardware variables and make signal-slot connections.
 
 computer = Computer()
-computer.led_matrix.turn_on()  # signal setup has started
+computer.led_matrix.turn_on()  # signal the user that setup has started
 timestep_knob = computer.main_knob
 cv_magnitude_knob = computer.knob_x
 random_factor_knob = computer.knob_y
@@ -144,23 +134,8 @@ lorenz_attractor_b.crossed_zero.connect(crossed_zero_pulse_output_socket_b.pulse
 lorenz_attractor_b.x_changed.connect(lorenz_attractor_b_x_cv_output_socket.map_and_write_value)
 lorenz_attractor_b.z_changed.connect(lorenz_attractor_b_z_cv_output_socket.map_and_write_value)
 
-# The timestep and random factor knobs are only connected to A, B when their CV input sockets are not plugged in.
-# this chunk of code assumes jacks are not plugged in - duplicates signal/slot connections below.
-# could replace by adding a check_input_sockets that fires signals whether the jack status changes or not
-
 # Knob X acts as a VCA on all four output CVs when CV/Audio input sockets are unplugged
 # CV/Audio inputs act as VCAs on A and B output CVs when they are plugged
-
-cv_magnitude_knob.value_changed.connect(lorenz_attractor_a_x_cv_output_socket.map_range)
-cv_magnitude_knob.value_changed.connect(lorenz_attractor_a_z_cv_output_socket.map_range)
-cv_magnitude_knob.value_changed.connect(lorenz_attractor_b_x_cv_output_socket.map_range)
-cv_magnitude_knob.value_changed.connect(lorenz_attractor_b_z_cv_output_socket.map_range)
-
-timestep_knob.value_changed.connect(lorenz_attractor_a.timestep.map_value)
-timestep_knob.value_changed.connect(lorenz_attractor_b.timestep.map_value)
-
-random_factor_knob.value_changed.connect(lorenz_attractor_a.random_factor.map_value)
-random_factor_knob.value_changed.connect(lorenz_attractor_b.random_factor.map_value)
 
 # CV input socket one (amplitude of CV outputs Ax and Az
 cv_magnitude_a_input_socket = computer.cv_audio_input_socket_one
@@ -195,7 +170,7 @@ cv_magnitude_a_input_socket.jack_removed.connect(
 )
 
 cv_magnitude_b_input_socket = computer.cv_audio_input_socket_two
-cv_magnitude_a_input_socket.set_voltage_range((0, 5))
+cv_magnitude_b_input_socket.set_voltage_range((0, 5))
 
 # if a jack is plugged into the CV_b magnitude input socket,
 cv_magnitude_b_input_socket.jack_inserted.connect(
@@ -226,7 +201,7 @@ cv_magnitude_b_input_socket.jack_removed.connect(
 )
 
 timestep_cv_input_socket = computer.cv_input_socket_one
-timestep_cv_input_socket.set_voltage_range((0, 5))
+timestep_cv_input_socket.set_voltage_range((-5, 5))
 
 # if a jack is plugged into the timestep input socket,
 timestep_cv_input_socket.jack_inserted.connect(
@@ -235,8 +210,8 @@ timestep_cv_input_socket.jack_inserted.connect(
     lambda: timestep_knob.value_changed.disconnect(lorenz_attractor_a.timestep.map_value),
     lambda: timestep_knob.value_changed.disconnect(lorenz_attractor_b.timestep.map_value),
     # connect the timestep knob to the minimum value of the timesteps of A and B
-    lambda: timestep_knob.value_changed.connect(lorenz_attractor_a.timestep.minimum.map_value),
-    lambda: timestep_knob.value_changed.connect(lorenz_attractor_b.timestep.minimum.map_value),
+    lambda: timestep_knob.value_changed.connect(lorenz_attractor_a.timestep.map_minimum_value),
+    lambda: timestep_knob.value_changed.connect(lorenz_attractor_b.timestep.map_minimum_value),
     # TODO - force the timestep CV input socket to read any time that the main knob's value changes
     # connect the timestep input socket to the timesteps of A and B
     lambda: timestep_cv_input_socket.value_changed.connect(lorenz_attractor_a.timestep.map_value),
@@ -253,8 +228,8 @@ timestep_cv_input_socket.jack_removed.connect(
     lambda: timestep_knob.value_changed.connect(lorenz_attractor_a.timestep.map_value),
     lambda: timestep_knob.value_changed.connect(lorenz_attractor_b.timestep.map_value),
     # disconnect the timestep knob from the min/max of the timesteps of A and B
-    lambda: timestep_knob.value_changed.disconnect(lorenz_attractor_a.timestep.minimum.map_value),
-    lambda: timestep_knob.value_changed.disconnect(lorenz_attractor_b.timestep.minimum.map_value),
+    lambda: timestep_knob.value_changed.disconnect(lorenz_attractor_a.timestep.map_minimum_value),
+    lambda: timestep_knob.value_changed.disconnect(lorenz_attractor_b.timestep.map_minimum_value),
     # and set the minimum timestep back to its default value - TODO
     #lambda: lorenz_attractor_a.timestep.minimum = 0.0001,
     #lambda: lorenz_attractor_b.timestep.minimum = 0.0001,
@@ -275,8 +250,8 @@ random_factor_cv_input_socket.jack_inserted.connect(
     lambda: random_factor_knob.value_changed.disconnect(lorenz_attractor_a.random_factor.map_value),
     lambda: random_factor_knob.value_changed.disconnect(lorenz_attractor_b.random_factor.map_value),
     # connect the random factor knob to the maximum value of the random factors of A and B
-    lambda: random_factor_knob.value_changed.connect(lorenz_attractor_a.random_factor.maximum.map_value),
-    lambda: random_factor_knob.value_changed.connect(lorenz_attractor_b.random_factor.maximum.map_value),
+    lambda: random_factor_knob.value_changed.connect(lorenz_attractor_a.random_factor.map_maximum_value),
+    lambda: random_factor_knob.value_changed.connect(lorenz_attractor_b.random_factor.map_maximum_value),
     # connect the random factor socket to the random factor of A and B
     lambda: random_factor_cv_input_socket.value_changed.connect(lorenz_attractor_a.random_factor.map_value),
     lambda: random_factor_cv_input_socket.value_changed.connect(lorenz_attractor_b.random_factor.map_value),
@@ -291,8 +266,8 @@ random_factor_cv_input_socket.jack_removed.connect(
     lambda: random_factor_knob.value_changed.connect(lorenz_attractor_a.random_factor.map_value),
     lambda: random_factor_knob.value_changed.connect(lorenz_attractor_b.random_factor.map_value),
     # disconnect the random factor knob from the maximum value of the random factors of A and B
-    lambda: random_factor_knob.value_changed.disconnect(lorenz_attractor_a.random_factor.maximum.map_value),
-    lambda: random_factor_knob.value_changed.disconnect(lorenz_attractor_b.random_factor.maximum.map_value),
+    lambda: random_factor_knob.value_changed.disconnect(lorenz_attractor_a.random_factor.map_maximum_value),
+    lambda: random_factor_knob.value_changed.disconnect(lorenz_attractor_b.random_factor.map_maximum_value),
     # disconnect the random factor socket from the random factor of A and B
     lambda: random_factor_cv_input_socket.value_changed.disconnect(lorenz_attractor_a.random_factor.map_value),
     lambda: random_factor_cv_input_socket.value_changed.disconnect(lorenz_attractor_b.random_factor.map_value),
@@ -376,6 +351,7 @@ loop_set_initial_coordinates_socket.jack_removed.connect(
     )
 )
 
+computer.update_input_sockets(fire_all_signals=True)
 computer.led_matrix.turn_off()  # signal setup is complete
 
 main_timer = TimerConnector(
@@ -384,7 +360,6 @@ main_timer = TimerConnector(
     freq=MAXIMUM_TIMER_FREQUENCY_HZ,
 )
 
-computer.update_input_sockets()
 counter = 0
 while True:
 

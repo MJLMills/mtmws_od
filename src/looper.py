@@ -85,7 +85,6 @@ class Looper(object):
             self._num_steps = None
             self.looping_stopped.emit()
 
-    # @timed_function
     def take_step(self) -> None:
         """Take a step along each model's trajectory.
 
@@ -97,8 +96,6 @@ class Looper(object):
         initial position, so take_step is not called as this would result in a
         double step in a single cycle.
         """
-        # self._needs_update = False
-
         if self._looping:
             if self._counter == self._num_steps:
                 for model in self._models:

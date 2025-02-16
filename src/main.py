@@ -48,6 +48,24 @@ When a jack is plugged into the random factor CV input, the maximum
 random factor is controlled by the random factor knob.
 """
 
+RANDOM_FACTOR_CHANGE = 1
+"""Must be <= random factor max."""
+
+CV_MAGNITUDE_A_INPUT_SOCKET_RANGE = (0, 5)
+"""The range of input voltages accepted by the CV A magnitude socket."""
+CV_MAGNITUDE_B_INPUT_SOCKET_RANGE = (0, 5)
+"""The range of input voltages accepted by the CV B magnitude socket."""
+TIMESTEP_CV_INPUT_SOCKET_RANGE = (-5, 5)
+"""The range of input voltages accepted by the timestep socket."""
+RANDOM_FACTOR_CV_INPUT_SOCKET_RANGE = (-5, 5)
+"""The range of input voltages accepted by the random factor socket."""
+
+CROSSED_ZERO_LED_A_ID = 1
+CROSSED_ZERO_LED_B_ID = 2
+LOOPER_STATUS_LED_ID = 3
+SET_START_LED_ID = 4
+LOOP_BEGIN_LEDS = (5, 6)
+
 # Create the software ranged variables.
 
 timestep_a = RangedVariable(
@@ -73,8 +91,8 @@ timestep_b = RangedVariable(
 
 random_factor = RangedVariable(
     minimum=RANDOM_FACTOR_MIN,
-    maximum=RangedVariable(minimum=RANDOM_FACTOR_MAX - 1,
-                           maximum=RANDOM_FACTOR_MAX + 1,
+    maximum=RangedVariable(minimum=RANDOM_FACTOR_MAX - RANDOM_FACTOR_CHANGE,
+                           maximum=RANDOM_FACTOR_MAX + RANDOM_FACTOR_CHANGE,
                            value=RANDOM_FACTOR_MAX),
     value=RANDOM_FACTOR_MIN
 )
@@ -104,12 +122,10 @@ computer.led_matrix.turn_on()  # signal the user that setup has started
 timestep_knob = computer.main_knob
 cv_magnitude_knob = computer.knob_x
 random_factor_knob = computer.knob_y
-switch_z = computer.switch_z
 
 # lorenz A
 # The LED, pulse output and CV output are always connected to the model.
-
-crossed_zero_led_a = computer.led_matrix.get_by_index(1)
+crossed_zero_led_a = computer.led_matrix.get_by_index(CROSSED_ZERO_LED_A_ID)
 crossed_zero_pulse_output_socket_a = computer.pulses_output_socket_one
 
 lorenz_attractor_a_x_cv_output_socket = computer.cv_output_socket_one
@@ -122,8 +138,7 @@ lorenz_attractor_a.z_changed.connect(lorenz_attractor_a_z_cv_output_socket.map_a
 
 # lorenz B
 # The LED, pulse output and CV output are always connected to the model.
-
-crossed_zero_led_b = computer.led_matrix.get_by_index(2)
+crossed_zero_led_b = computer.led_matrix.get_by_index(CROSSED_ZERO_LED_B_ID)
 crossed_zero_pulse_output_socket_b = computer.pulses_output_socket_two
 
 lorenz_attractor_b_x_cv_output_socket = computer.cv_output_socket_two
@@ -139,7 +154,7 @@ lorenz_attractor_b.z_changed.connect(lorenz_attractor_b_z_cv_output_socket.map_a
 
 # CV input socket one (amplitude of CV outputs Ax and Az
 cv_magnitude_a_input_socket = computer.cv_audio_input_socket_one
-cv_magnitude_a_input_socket.set_voltage_range((0, 5))
+cv_magnitude_a_input_socket.set_voltage_range(CV_MAGNITUDE_A_INPUT_SOCKET_RANGE)
 
 # if a jack is plugged into the CV_a magnitude input socket,
 cv_magnitude_a_input_socket.jack_inserted.connect(
@@ -170,7 +185,7 @@ cv_magnitude_a_input_socket.jack_removed.connect(
 )
 
 cv_magnitude_b_input_socket = computer.cv_audio_input_socket_two
-cv_magnitude_b_input_socket.set_voltage_range((0, 5))
+cv_magnitude_b_input_socket.set_voltage_range(CV_MAGNITUDE_B_INPUT_SOCKET_RANGE)
 
 # if a jack is plugged into the CV_b magnitude input socket,
 cv_magnitude_b_input_socket.jack_inserted.connect(
@@ -201,7 +216,7 @@ cv_magnitude_b_input_socket.jack_removed.connect(
 )
 
 timestep_cv_input_socket = computer.cv_input_socket_one
-timestep_cv_input_socket.set_voltage_range((-5, 5))
+timestep_cv_input_socket.set_voltage_range(TIMESTEP_CV_INPUT_SOCKET_RANGE)
 
 # if a jack is plugged into the timestep input socket,
 timestep_cv_input_socket.jack_inserted.connect(
@@ -212,7 +227,8 @@ timestep_cv_input_socket.jack_inserted.connect(
     # connect the timestep knob to the minimum value of the timesteps of A and B
     lambda: timestep_knob.value_changed.connect(lorenz_attractor_a.timestep.map_minimum_value),
     lambda: timestep_knob.value_changed.connect(lorenz_attractor_b.timestep.map_minimum_value),
-    # TODO - force the timestep CV input socket to read any time that the main knob's value changes
+    # TODO - force the timestep CV input socket to update any time that the main knob's value changes
+    # TODO - this would be main_knob.value_changed.connect(timestep_cv_input_socket.read)
     # connect the timestep input socket to the timesteps of A and B
     lambda: timestep_cv_input_socket.value_changed.connect(lorenz_attractor_a.timestep.map_value),
     lambda: timestep_cv_input_socket.value_changed.connect(lorenz_attractor_b.timestep.map_value),
@@ -230,7 +246,8 @@ timestep_cv_input_socket.jack_removed.connect(
     # disconnect the timestep knob from the min/max of the timesteps of A and B
     lambda: timestep_knob.value_changed.disconnect(lorenz_attractor_a.timestep.map_minimum_value),
     lambda: timestep_knob.value_changed.disconnect(lorenz_attractor_b.timestep.map_minimum_value),
-    # and set the minimum timestep back to its default value - TODO
+    # TODO - set the minimum timestep back to its default value, add a "reset" method to use as a slot?
+    # TODO - this would require a ranged variable to have a default value
     #lambda: lorenz_attractor_a.timestep.minimum = 0.0001,
     #lambda: lorenz_attractor_b.timestep.minimum = 0.0001,
     # disconnect the timestep input socket from the timesteps of A and B
@@ -242,8 +259,9 @@ timestep_cv_input_socket.jack_removed.connect(
 )
 
 random_factor_cv_input_socket = computer.cv_input_socket_two
-random_factor_cv_input_socket.set_voltage_range((-5, 5))
+random_factor_cv_input_socket.set_voltage_range(RANDOM_FACTOR_CV_INPUT_SOCKET_RANGE)
 
+# if a jack is plugged into the random factor input socket,
 random_factor_cv_input_socket.jack_inserted.connect(
     #lambda: print("Random factor (CV two) jack inserted"),
     # disconnect the random factor knob from the random factor of A and B
@@ -260,6 +278,7 @@ random_factor_cv_input_socket.jack_inserted.connect(
     lambda: lorenz_attractor_b.random_factor.map_value(random_factor_cv_input_socket.ranged_variable),
 )
 
+# if a jack is removed from the random factor input socket,
 random_factor_cv_input_socket.jack_removed.connect(
     #lambda: print("Random factor (CV two) jack removed"),
     # connect the random factor knob to the random factor of A and B
@@ -278,10 +297,11 @@ random_factor_cv_input_socket.jack_removed.connect(
 
 # looper
 
-looper_status_led = computer.led_matrix.get_by_index(3)
-set_start_led = computer.led_matrix.get_by_index(4)
-loop_begin_led_one = computer.led_matrix.get_by_index(5)
-loop_begin_led_two = computer.led_matrix.get_by_index(6)
+looper_status_led = computer.led_matrix.get_by_index(LOOPER_STATUS_LED_ID)
+set_start_led = computer.led_matrix.get_by_index(SET_START_LED_ID)
+loop_begin_led_one = computer.led_matrix.get_by_index(LOOP_BEGIN_LEDS[0])
+loop_begin_led_two = computer.led_matrix.get_by_index(LOOP_BEGIN_LEDS[1])
+
 switch_z = computer.switch_z
 loop_toggle_pulse_socket = computer.pulses_input_socket_one
 loop_set_initial_coordinates_socket = computer.pulses_input_socket_two
@@ -294,6 +314,7 @@ looper.looping_stopped.connect(looper_status_led.turn_off)
 looper.initial_coordinates_set.connect(set_start_led.pulse)
 
 # connect switch Z signals to slots
+# TODO - change the default so if loop is up at start it is ignored til switched middle then up
 if switch_z.is_up():
     looper.start_looping()
 
@@ -363,9 +384,9 @@ main_timer = TimerConnector(
 counter = 0
 while True:
 
+    computer.read_analog_inputs()
+
     if counter == INPUT_SOCKET_UPDATE_STEPS:
         computer.update_input_sockets()
         counter = 0
     counter += 1
-
-    computer.read_analog_inputs()

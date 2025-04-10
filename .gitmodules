@@ -1,0 +1,3 @@
+[submodule "modules/pyworkshopsystem"]
+	path = modules/pyworkshopsystem
+	url = https://github.com/MJLMills/pyworkshopsystem

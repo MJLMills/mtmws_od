@@ -1,5 +1,17 @@
 """main.py is for any Python code that you want to run each time your device starts."""
 
+"""
+imports:
+from pyworkshopsystem:
+    RangedVariable
+    Computer
+    TimerConnector
+
+from this repo:
+    lorenz_system.LorenzSystem (needs model.Model (no internal dependencies) and RangedVariable)
+    looper.Looper (no internal dependencies)
+
+"""
 # Define constants
 
 MAXIMUM_TIMER_FREQUENCY_HZ = 180

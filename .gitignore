@@ -5,3 +5,4 @@
 .idea/*
 /notebooks/.ipynb_checkpoints/
 /dist/
+.DS_Store

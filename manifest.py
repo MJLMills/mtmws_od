@@ -29,3 +29,20 @@ the rp2/modules directory which is included in the rp2/boards/manifest.py file t
 freeze("$(PORT_DIR)/modules")
 """
 include("$(PORT_DIR)/boards/manifest.py")
+
+"""
+This is equivalent to copying the “package_path” directory to the device (except as frozen code).
+
+If the package isn’t in the same directory as the manifest file, use base_path:
+package("foo", base_path="path/to/libraries")
+Will recursively include all .py files in foo, and will be frozen as foo/**/*.py.
+"""
+# package("computer", base_path="modules/pyworkshopsystem/src")  # will be available as "import computer"
+# package("connect", base_path="modules/pyworkshopsystem/src")  # will be available as "import connect"
+# the above should be in a manifest file in the computer repo
+
+module("looper.py", base_path="src")
+module("model.py", base_path="src")
+module("lorenz_system.py", base_path="src")
+
+# still not sure how to include main.py and boot.py through the manifest

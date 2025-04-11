@@ -4,3 +4,4 @@
 /docs/od.synctex.gz
 .idea/*
 /notebooks/.ipynb_checkpoints/
+/dist/

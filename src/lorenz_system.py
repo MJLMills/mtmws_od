@@ -1,6 +1,6 @@
 from model import Model
 import random
-from ranged_variable import RangedVariable
+from connect.ranged_variable import RangedVariable
 
 
 class LorenzSystem(Model):

@@ -1,3 +1,5 @@
+"""main.py is for any Python code that you want to run each time your device starts."""
+
 # Define constants
 
 MAXIMUM_TIMER_FREQUENCY_HZ = 180

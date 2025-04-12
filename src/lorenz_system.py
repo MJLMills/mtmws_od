@@ -1,6 +1,7 @@
 from model import Model
 import random
-from ranged_variable import RangedVariable
+from connect.ranged_variable import RangedVariable
+from connect.signal import Signal
 
 
 class LorenzSystem(Model):
@@ -136,8 +137,8 @@ class LorenzSystem(Model):
         self._x.value = self._coordinates[0]
         self._z.value = self._coordinates[2]
 
-        self.x_changed.emit(ranged_variable=self._x.value)
-        self.z_changed.emit(ranged_variable=self._z.value)
+        self.x_changed.emit(ranged_variable=self._x)
+        self.z_changed.emit(ranged_variable=self._z)
 
         if (previous_x * self._coordinates[0]) <= 0:
             self.crossed_zero.emit()

@@ -1,3 +1,6 @@
+from connect.signal import Signal
+
+
 class Looper(object):
     """A looper for models.
 
@@ -9,12 +12,18 @@ class Looper(object):
         Whether to being looping on instantiation.
         Default value is False.
     """
+
     def __init__(self,
                  models: list,
                  looping: bool = False):
 
         self._models = models
         self._looping = looping
+
+        self.looping_started = Signal()
+        self.looping_stopped = Signal()
+        self.initial_coordinates_set = Signal()
+        self.at_loop_start = Signal()
 
         self._counter = 0
         self._num_steps = None
@@ -41,6 +50,8 @@ class Looper(object):
         for model in self._models:
             model.set_initial_coordinates()
 
+        self.initial_coordinates_set.emit()
+
     def reset(self) -> None:
         """Return the model trajectories to their initial coordinates."""
         self._counter = 0
@@ -62,6 +73,8 @@ class Looper(object):
             for model in self._models:
                 model.reset()
 
+            self.looping_started.emit()
+
     def stop_looping(self) -> None:
         """Stop looping the models.
 
@@ -73,8 +86,8 @@ class Looper(object):
         if self._looping == True:
             self._looping = False
             self._num_steps = None
+            self.looping_stopped.emit()
 
-    #@timed_function
     def take_step(self) -> None:
         """Take a step along each model's trajectory.
 
@@ -86,14 +99,13 @@ class Looper(object):
         initial position, so take_step is not called as this would result in a
         double step in a single cycle.
         """
-        #self._needs_update = False
-
         if self._looping:
             if self._counter == self._num_steps:
                 for model in self._models:
                     model.reset()
 
                 self.reset()
+                self.at_loop_start.emit()
                 return
 
         for model in self._models:

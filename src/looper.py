@@ -1,3 +1,6 @@
+from connect.signal import Signal
+
+
 class Looper(object):
     """A looper for models.
 

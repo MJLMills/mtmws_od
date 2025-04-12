@@ -4,7 +4,8 @@ mcclintic.sphere.fx
 Od is a program for the Music Thing Modular Workshop System's Computer
 module that simulates the Lorenz system in order to produce loop-able 
 control voltage and pulse signals that display sensitivity to initial 
-conditions. "Od" is Cymraeg for "odd" or "strange".
+conditions. "Od" is Cymraeg for "odd" or "strange". For detailed
+documentation please see the [included PDF](docs/od.pdf).
 
 The program can be flashed to the Computer module following the instructions at
 the [Computer](https://www.musicthing.co.uk/Computer_Program_Cards/) page
@@ -16,11 +17,11 @@ The program is created using the
 reusable tool for building programs for the Computer module using 
 MicroPython.
 
-### Building the .uf2
+### Building the .uf2 Binary
 
 *NB: This has only been tested on Mac OS Sequoia 15.4. The process should work 
 similarly for other operating systems but the installation of the prerequisites
-will differ.*
+will differ. This procedure is only necessary if customizing the program.*
 
 The source code can be frozen into the micropython code within a .uf2 file, 
 allowing for flashing of Computer modules with both micropython and
@@ -33,11 +34,9 @@ these can be installed using [homebrew](https://brew.sh/):
 
 `brew install cmake`
 
-and
-
 `brew install gcc-arm-embedded`
 
-The bash script `clone.sh` clones the micropython repo, and initializes the
+The bash script `clone_mp.sh` clones the micropython repo, and initializes the
 submodules needed to build the rp2 port of micropython. The `build.sh` script
 then builds the cross-compiler, the board/port submodules and finally the
 `firmware.uf2` file, which is copied to the root dist directory. This file can

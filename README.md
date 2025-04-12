@@ -26,7 +26,7 @@ will differ. This procedure is only necessary if customizing the program.*
 The source code can be frozen into the micropython code within a .uf2 file, 
 allowing for flashing of the Od program. This process is not mature or well-tested,
 so per-release, pre-built .uf2 files are provided in the release page of the 
-git repo (see above)
+git repo (see above).
 
 Building requires cmake and the appropriate GNU embedded toolchain. On MacOS
 these can be installed using [homebrew](https://brew.sh/):

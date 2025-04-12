@@ -1,20 +1,11 @@
-"""main.py is for any Python code that you want to run each time your device starts."""
+from computer import Computer
+from connect import RangedVariable, TimerConnector
+from lorenz_system import LorenzSystem
+from looper import Looper
 
-"""
-imports:
-from pyworkshopsystem:
-    RangedVariable
-    Computer
-    TimerConnector
-
-from this repo:
-    lorenz_system.LorenzSystem (needs model.Model (no internal dependencies) and RangedVariable)
-    looper.Looper (no internal dependencies)
-
-"""
 # Define constants
 
-MAXIMUM_TIMER_FREQUENCY_HZ = 180
+MAXIMUM_TIMER_FREQUENCY_HZ = 100
 """The maximum frequency (in Hz) at which the timed loop will be executed.
 The upper bound of this value is limited by the execution time of the timed
 loop, which is determined by the model update and output socket write timings.

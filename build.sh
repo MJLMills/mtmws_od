@@ -1,3 +1,6 @@
+cp -rf src/boot.py micropython/ports/rp2/modules
+cp -rf src/main.py micropython/ports/rp2/modules
+
 cd micropython
 make -C mpy-cross
 

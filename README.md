@@ -24,8 +24,7 @@ similarly for other operating systems but the installation of the prerequisites
 will differ. This procedure is only necessary if customizing the program.*
 
 The source code can be frozen into the micropython code within a .uf2 file, 
-allowing for flashing of Computer modules with both micropython and
-the extensions in the package. This process is not mature or well-tested,
+allowing for flashing of the Od program. This process is not mature or well-tested,
 so per-release, pre-built .uf2 files are provided in the release page of the 
 git repo (see above)
 

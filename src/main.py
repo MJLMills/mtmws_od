@@ -1,6 +1,11 @@
+from computer import Computer
+from connect import RangedVariable, TimerConnector
+from lorenz_system import LorenzSystem
+from looper import Looper
+
 # Define constants
 
-MAXIMUM_TIMER_FREQUENCY_HZ = 180
+MAXIMUM_TIMER_FREQUENCY_HZ = 100
 """The maximum frequency (in Hz) at which the timed loop will be executed.
 The upper bound of this value is limited by the execution time of the timed
 loop, which is determined by the model update and output socket write timings.

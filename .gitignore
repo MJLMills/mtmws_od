@@ -5,4 +5,5 @@
 .idea/*
 /notebooks/.ipynb_checkpoints/
 /dist/
+/micropython/
 .DS_Store

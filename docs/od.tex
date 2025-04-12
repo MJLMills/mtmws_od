@@ -1,7 +1,7 @@
 \documentclass{tufte-handout}
 
 \title{Od: Lorenz-system-based voltages for the Music Thing Modular Workshop System Computer
-\thanks{musicthing.co.uk/workshopsystem/}}
+\thanks{musicthing.co.uk/workshopsystem}}
 
 \author[mcclintic.sphere.fx]{mcclintic.sphere.fx}
 
@@ -45,7 +45,7 @@ control voltage and pulse signals that display sensitivity to initial conditions
 
 \section{The Lorenz System}\label{sec:the-lorenz-system}
 
-\newthought{The Lorenz system\sidenote{Deterministic Nonperiodic Flow, Edward N. Lorenz} is a set of} three coupled, first-order ordinary differential equations.
+\newthought{The Lorenz system\sidenote{Lorenz, E.N. (1963) \textit{Deterministic Nonperiodic Flow}. Journal of Atmospheric Sciences, 20, 130-141} is a set of} three coupled, first-order ordinary differential equations.
 
 $$\frac{dx}{dt} = \sigma(y - x)$$
 
@@ -90,8 +90,8 @@ For the values $\sigma=10$, $\beta=8/3$, $\rho=28$ the system exhibits chaotic b
 
 \subsection{Solving the System}\label{sec:solving_the_system}
 
-The solution of the system of ODEs is an "initial value problem"\sidenote{Numerical Recipes}. That is, the coordinates of an initial point are given, and the goal is (in general) to find the values $x$, $y$, $z$ at some discrete list of future time values. In this specific case, the goal is to be able to continually determine the next step in the trajectory so that the functions $x$, $y$ and $z$ can be exported as control voltage via the Computer's CV output sockets.
-The simplest approach to solution of an initial value problem is the "Euler method"\sidenote{find a citation}, which discretizes time into individual constant steps, $\Delta t$, allowing the next point on a trajectory to be obtained via a simple formula.
+The solution of the system of ODEs is an "initial value problem" \sidenote[][2.0cm]{Press, W. H., Teukolsky, S. A., Vetterling, W. T. and Flannery, B. P. (2007) \textit{Numerical Recipes 3rd Edition: The Art of Scientific Computing}}. That is, the coordinates of an initial point are given, and the goal is (in general) to find the values $x$, $y$, $z$ at some discrete list of future time values. In this specific case, the goal is to be able to continually determine the next step in the trajectory so that the functions $x$, $y$ and $z$ can be exported as control voltage via the Computer's CV output sockets.
+The simplest approach to solution of an initial value problem is the "Euler method"\sidenote[][0.8cm]{Euler, L. (1768) \textit{Institutiones calculi integralis}}, which discretizes time into individual constant steps, $\Delta t$, allowing the next point on a trajectory to be obtained via a simple formula.
 
 $$x_{n+1} = x_n + \Delta t f_{x}(t, x, y, z)$$
 
@@ -152,8 +152,6 @@ This idea is also based on the concept that repeating randomness becomes not ran
 The start point is set by sending a trigger into the leftmost CV input or clicking the Z-switch down. This will store the postition at which the trigger (or switch click) was detected as $r_0$, and begin counting steps on the trajectory. Looping can be controlled either by a trigger at the rightmost pulse input or by setting the Z-switch to the up position (middle corresponds to turning looping off). The goal of including the switch is playability of the loop, and the trigger enables some amount of repeatability. When looping is turned on, the position at the current time is used as $r_N$ and the system will immediately return to $r_0$, evolving until the number of steps $N$ has elapsed then returning to the position at $t_0$. Turning looping off un-loops the time circle back to a flat line and the system will continue to freely evolve without affecting $t_0$; $t_N$ is forgotten at the point looping is turned off.
 
 The center row of LEDs shows the loop status. The leftmost LED is lit when looping is enabled (NB this is redundant with looking at the switch), and the rightmost flashes when the loop boundary is crossed (i.e. at the simultaneous start/end of the loop).
-
-NB: maybe it would be nice if you could always return to your exact same loop after meandering, i.e after the first time you start a loop $t_N$ would be retained unless explicitly altered, but would need to decide how (switch click?)
 
 
 \section{Future Work}\label{sec:future_work}

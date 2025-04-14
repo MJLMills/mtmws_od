@@ -154,8 +154,8 @@ lorenz_attractor_b.crossed_zero.connect(crossed_zero_pulse_output_socket_b.pulse
 lorenz_attractor_b.x_changed.connect(lorenz_attractor_b_x_cv_output_socket.map_and_write_value)
 lorenz_attractor_b.z_changed.connect(lorenz_attractor_b_z_cv_output_socket.map_and_write_value)
 
-# Knob X acts as a VCA on all four output CVs when CV/Audio input sockets are unplugged
-# CV/Audio inputs act as VCAs on A and B output CVs when they are plugged
+# Knob X acts as an attenuator on all four output CVs when CV/Audio input sockets are unplugged
+# CV/Audio inputs act as VCAs on A and B output CV magnitudes when they are plugged
 
 # CV input socket one (amplitude of CV outputs Ax and Az
 cv_magnitude_a_input_socket = computer.cv_audio_input_socket_one
@@ -319,7 +319,6 @@ looper.looping_stopped.connect(looper_status_led.turn_off)
 looper.initial_coordinates_set.connect(set_start_led.pulse)
 
 # connect switch Z signals to slots
-# TODO - change the default so if loop is up at start it is ignored til switched middle then up
 if switch_z.is_up():
     looper.start_looping()
 

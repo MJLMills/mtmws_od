@@ -76,8 +76,8 @@ In order to generate trajectories of the type shown in Fig. 2 to be used as cont
 
 \subsection{Solving the System}\label{sec:solving_the_system}
 
-The solution of the system of ODEs is an "initial value problem" \sidenote[][2.0cm]{Press, W. H., Teukolsky, S. A., Vetterling, W. T. and Flannery, B. P. (2007) \textit{Numerical Recipes 3rd Edition: The Art of Scientific Computing}}. That is, the coordinates of an initial point are given, and the goal is (in general) to find the values $x$, $y$, $z$ at some discrete list of future time values. In this specific case, the goal is to be able to continually determine the next step in the trajectory so that the functions $x$, $y$ and $z$ can be exported as control voltage via the Computer's CV output sockets.
-The simplest approach to solution of an initial value problem is the "Euler method"\sidenote[][0.8cm]{Euler, L. (1768) \textit{Institutiones calculi integralis}}, which discretizes time into individual constant steps, $\Delta t$, allowing the next point on a trajectory to be obtained via a simple formula.
+The solution of the system of ODEs is an "initial value problem" \sidenote[][0.5cm]{Press, W. H., Teukolsky, S. A., Vetterling, W. T. and Flannery, B. P. (2007) \textit{Numerical Recipes 3rd Edition: The Art of Scientific Computing}}. That is, the coordinates of an initial point are given, and the goal is (in general) to find the values $x$, $y$, $z$ at some discrete list of future time values. In this specific case, the goal is to be able to continually determine the next step in the trajectory so that the functions $x$, $y$ and $z$ can be exported as control voltage via the Computer's CV output sockets.
+The simplest approach to solution of an initial value problem is the "Euler method"\sidenote{Euler, L. (1768) \textit{Institutiones calculi integralis}}, which discretizes time into individual constant steps, $\Delta t$, allowing the next point on a trajectory to be obtained via a simple formula.
 
 $$x_{n+1} = x_n + \Delta t f_{x}(t, x, y, z)$$
 
@@ -85,11 +85,11 @@ The error introduced by this approach is on the order of ${\Delta t}^2$. For mos
 
 \section{The Module}\label{sec:the_module}
 
-The module itself utilizes a pair of Lorenz systems ($A$ and $B$) which run concurrently at different rates. Inspired by the \o chd module\sidenote{https://www.instruomodular.com/product/ochd/}, the relative rate is fixed at a musically engaging ratio (in this case, $\Delta t_{fast} = \frac{11}{5} \Delta t_{slow}$. The overall rate is controlled by the main knob or the left-most CV input, depending on whether a jack is plugged into the left-most CV input.
+\newthought{The module itself utilizes} a pair of Lorenz systems ($A$ and $B$) which run concurrently at different rates. Inspired by the \o chd module\sidenote{https://www.instruomodular.com/product/ochd/}, the relative rate is fixed at a musically engaging ratio (in this case, $\Delta t_{fast} = \frac{11}{5} \Delta t_{slow}$. The overall rate is controlled by the main knob or the left-most CV input, depending on whether a jack is plugged into the left-most CV input.
 
 \begin{figure}[h]
   \includegraphics[width=\linewidth]{module_labels.png}%
-  \caption{The labels of the Computer's faceplate. The CV inputs control the rate and "randomness" properties shared by the two Lorenz systems, the CV/Audio inputs control the magnitude of the output from each of the two systems, and the pulse inputs allow control of the looping behaviour. The CV outputs provide the $x$- and $z$-coordinates of the trajectories of $A$ and $B$, while the pulse outputs fire when the trajectories of $A$ and $B$ cross zero along the $x$-axis.}%
+  \caption{The labels of the Computer's faceplate. The CV inputs control the rate and "randomness" properties shared by the two Lorenz systems, the CV/Audio inputs control the magnitude of the output from each of the two systems, and the switch and pulse inputs allow control of the looping behaviour. The CV outputs provide the $x$- and $z$-coordinates of the trajectories of $A$ and $B$, while the pulse outputs fire when the trajectories of $A$ and $B$ cross zero along the $x$-axis.}%
   \label{fig:module_labels}%
 \end{figure}
 
@@ -109,6 +109,8 @@ The two pulse outputs of the computer fire whenever the $x$-coordinate of the as
 
 \subsection{Looping}\label{sec:looping}
 
+\newthought{It would be wasteful} to implement a digital module simulating the Lorenz system without making use of the fact that these dynamical systems are highly sensitive to initial conditions. This implies that two trajectories whose starting positions differ by a small amount will initially behave similarly, but over time will drift apart.
+This property of similarity of trajectory suggests the idea of returning to the start of a given trajectory, but making a perturbation to the initial position before starting to compute the trajectory again. The magnitude of this perturbation will determine for how long the first and second solutions of the system will remain similar before diverging.
 
 \begin{figure*}[h]
   \includegraphics[width=\linewidth]{looping_voltages.png}%
@@ -116,25 +118,25 @@ The two pulse outputs of the computer fire whenever the $x$-coordinate of the as
   \label{fig:looping_voltages}%
 \end{figure*}
 
-It would be wasteful to implement a digital module simulating the Lorenz system without making use of the fact that these dynamical systems are highly sensitive to initial conditions. This implies that two trajectories whose starting positions differ by a small amount will initially behave similarly, but over time will drift apart.
-This property of similarity of trajectory suggests the idea of returning to the start of a given trajectory, but making a perturbation to the initial position before starting to compute the trajectory again. The magnitude of this perturbation will determine for how long the first and second solutions of the system will remain similar before diverging.
+This idea is also based on the concept that repeating randomness becomes not random at all. While the trajectories are not "random" in any sense - they are in fact completely deterministic - they are not repetitive in an obvious way and give a sense of back-and-forth evolution. It is not predictable to a listener when or how quickly the system will move from one attractor to another, or how long an orbit on an attractor will last. However, if a section of the trajectory is repeated over a short enough time range, the repetition will become obvious to the listener. Thus, we can take an unpredictable system and make it predictable by looping a section of a trajectory between an initial position $x_0, y_0, z_0$ and a final position $x_N, y_N, z_N$ where $N$ is the number of steps taken between the initial and final positions (see Fig. 4). 
 
 \begin{figure*}[h]
   \includegraphics[width=\linewidth]{dependent_loop.png}%
-  \caption{Looping the two Lorenz systems with sensitivity to initial conditions.}%
+  \caption{Looping the two Lorenz systems with sensitivity to initial conditions. At each repeat (marked with a black line) the trajectory initially appears similar, by approximately halfway through the loop the trajectory becomes different. After three repeats the loop is released.}%
   \label{fig:dependent_loop}%
 \end{figure*}
 
-
-This idea is also based on the concept that repeating randomness becomes not random at all. While the trajectories are not "random" in any sense - they are in fact completely deterministic - they are not repetitive in an obvious way and give a sense of back-and-forth evolution. It is not predictable to a listener when or how quickly the system will move from one attractor to another, or how long an orbit on an attractor will last. However, if a section of the trajectory is repeated over a short enough time range, the repetition will become obvious to the listener. Thus, we can take an unpredictable system and make it predictable by looping a section of a trajectory between an initial position $x_0, y_0, z_0$ and a final position $x_N, y_N, z_N$ where $N$ is the number of steps taken between the initial and final positions. Given this loop, the sensitivity to initial conditions can be made useful. By allowing the musician to control the magnitude of a random perturbation added to the initial position, the loop can be tuned to be either the same every time ($\zeta=0$), or to diverge on each repeat to a desired degree ($\zeta$ between 0 and 2, chosen by considered listening). This opens the door to a fuzzier definition of repetition where the loop is "similar enough" each time for the listener to detect repetition, but different enough to remain somewhat unpredictable, at the direction of the musician. This effect will also be felt on the pulse outputs. The Y-knob is used to set the amount of randomness. If a jack is plugged into the right-most CV input (-5 to +5 V), the value at the jack will control the value of the randomness, and the Y-knob will be disconnected.
+Given this loop, the sensitivity to initial conditions can be made useful. By allowing the musician to control the magnitude of a random perturbation added to the initial position, the loop can be tuned to be either the same every time ($\zeta=0$), or to diverge on each repeat to a desired degree ($\zeta$ between 0 and 2, chosen by considered listening). This opens the door to a fuzzier definition of repetition where the loop is "similar enough" each time for the listener to detect repetition, but different enough to remain somewhat unpredictable, at the direction of the musician (see Fig. 5). This effect will also be felt on the pulse outputs. 
 
 \begin{figure*}[h]
   \includegraphics[width=\linewidth]{very_dependent_loop.png}%
-  \caption{Looping the two Lorenz systems with a high degree of sensitivity to initial conditions.}%
+  \caption{Looping the two Lorenz systems with a high degree of sensitivity to initial conditions. In this case, each loop has little similarity to any other, and the system is effectively evolving as if looping is diengaged.}%
   \label{fig:very_dependent_loop}%
 \end{figure*}
 
-Looping can also be controlled via the pulse inputs. The start point is set by sending a trigger into the leftmost pulse input or clicking the Z-switch down. This will store the postition at which the trigger (or switch click) was detected as $r_0$, and begin counting steps on the trajectory. Looping can be controlled either by a trigger at the rightmost pulse input or by setting the Z-switch to the up position (middle corresponds to turning looping off). The goal of including the switch is playability of the loop, and the trigger enables some amount of repeatability. When looping is turned on, the position at the current time is used as $r_N$ and the system will immediately return to $r_0$, evolving until the number of steps $N$ has elapsed then returning to $r_0$. Turning looping off un-loops the time circle back to a flat line and the system will continue to freely evolve without affecting $t_0$; $t_N$ is forgotten at the point looping is turned off.
+The Y-knob is used to set the amount of randomness. If a jack is plugged into the right-most CV input (-5 to +5 V), the value at the jack will control the value of the randomness, and the Y-knob will be disconnected.
+
+Looping can also be controlled via the pulse inputs. The start point is set by sending a trigger into the leftmost pulse input or clicking the Z-switch down. This will store the postition at which the trigger (or switch click) was detected as $r_0$, and begin counting steps on the trajectory. Looping can be controlled either by a trigger at the rightmost pulse input or by setting the Z-switch to the up position (middle corresponds to turning looping off). The goal of including the switch is playability of the loop, and the trigger enables some amount of repeatability. When looping is turned on, the position at the current time is used as $r_N$ and the system will immediately return to $r_0$, evolving until the number of steps $N$ has elapsed then returning to $r_0$. Turning looping off un-loops the time circle back to a flat line and the system will continue to freely evolve without affecting $t_0$; $t_N$ is forgotten at the point looping is turned off (see Figs. 4, 5 and 6).
 
 The centre row of LEDs shows the loop status. The leftmost LED is lit when looping is enabled, and the rightmost flashes when the loop start point $r_0$ is set. The bottom row of LEDs flash when the loop boundary is crossed (i.e. at the simultaneous start/end of the loop $t_0$).
 

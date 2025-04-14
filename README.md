@@ -11,6 +11,10 @@ The program can be flashed to the Computer module following the instructions at
 the [Computer](https://www.musicthing.co.uk/Computer_Program_Cards/) page
 after downloading the .uf2 binary for the latest version from the [releases
 page](https://github.com/MJLMills/mtmws_od/releases) of the program repo.
+When started, the program will light all 6 LEDs until boot is complete, and
+then turn the LEDs off and begin the simulation. Note the current default 
+behaviour when the modules starts with the switch up is to stay in loop mode
+until the switched is moved to the middle.
 
 The program is created using the 
 [pyworkshopsystem](https://github.com/MJLMills/pyworkshopsystem) package, a
